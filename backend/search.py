@@ -156,20 +156,7 @@ def search_portal_features(query):
 
 def search_pyq():
     """Return the fixed PYQ answer from the university_info table."""
-    try:
-        rows = execute_fetch(
-            """
-            SELECT answer
-            FROM university_info
-            WHERE topic = 'pyq'
-            LIMIT 1
-            """
-        )
-        if rows:
-            return rows[0][0]
-    except Exception as e:
-        print(f"[SEARCH ERROR] search_pyq: {e}")
-    return None
+    return "You can find all previous year question papers (PYQs) and study materials at The Helpers website: https://thehelpers.vercel.app/"
 
 
 def search_locations(query):
