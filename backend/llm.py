@@ -19,7 +19,7 @@ except Exception as import_error:
     print(f"[LLM WARNING] google-generativeai is not available: {import_error}")
 
 
-def ask_llm(prompt: str) -> str:
+def ask_llm(prompt: str, history: list = None) -> str:
     if not prompt or not prompt.strip():
         return "Please type a question so I can help you!"
 
@@ -38,8 +38,25 @@ def ask_llm(prompt: str) -> str:
         "2. Do NOT use any Markdown formatting! No asterisks (*), no hashtags (#), no backticks (`), and no bold text. "
         "3. Provide answers in plain text only. Keep it concise, helpful, and fast. "
         "4. If the user asks what MIST stands for or who developed you, state clearly that you were developed by GitHub user ixpavi (github.com/ixpavi). Do not make up any full forms for MIST."
-        f"\n\nUser Question: {prompt.strip()}"
     )
+
+    # Format history for Gemini API
+    # Gemini expects history format: [{"role": "user", "parts": ["hello"]}, {"role": "model", "parts": ["hi"]}]
+    formatted_history = []
+    if history:
+        for msg in history:
+            role = msg.get("role")
+            parts = msg.get("parts", [])
+            # Extract text from parts if it's a dict
+            if parts and isinstance(parts[0], dict) and "text" in parts[0]:
+                text = parts[0]["text"]
+            elif parts and isinstance(parts[0], str):
+                text = parts[0]
+            else:
+                text = ""
+            
+            if role in ["user", "model"] and text:
+                formatted_history.append({"role": role, "parts": [text]})
 
     try:
         genai.configure(api_key=api_key)
@@ -58,9 +75,13 @@ def ask_llm(prompt: str) -> str:
         last_error = None
         for model_name in fast_models:
             try:
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(
-                    system_instruction,
+                model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
+                
+                # Use start_chat to pass history context
+                chat = model.start_chat(history=formatted_history)
+                
+                response = chat.send_message(
+                    prompt.strip(),
                     safety_settings=safety_settings,
                     request_options={"timeout": 15}
                 )

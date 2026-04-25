@@ -59,13 +59,14 @@ def chat():
             return jsonify({"reply": "Please send a message."}), 400
 
         user_message = str(data["message"]).strip()
+        history = data.get("history", [])
         if not user_message:
             return jsonify({"reply": "Please type a question so I can help you!"}), 400
 
         # Search the database first; Gemini is only a fallback for no-match cases.
         reply = search(user_message)
         if not reply or reply.strip() == DEFAULT_REPLY:
-            reply = ask_llm(user_message)
+            reply = ask_llm(user_message, history)
 
         # Log the conversation (non-blocking - errors here should not break the response)
         try:

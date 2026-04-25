@@ -18,6 +18,7 @@
     var toastTimer = null;
     var scrollFrame = null;
     var heroHidden = false;
+    var chatHistory = [];
 
     document.addEventListener("DOMContentLoaded", init, { once: true });
 
@@ -64,7 +65,7 @@
             var response = await fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text, history: chatHistory })
             });
 
             if (!response.ok) {
@@ -73,7 +74,18 @@
 
             var data = await response.json();
             hideTyping();
-            appendMessage("bot", data && data.reply ? data.reply : "I could not find an answer.");
+            var reply = data && data.reply ? data.reply : "I could not find an answer.";
+            appendMessage("bot", reply);
+            
+            // Push to chat history
+            chatHistory.push({ role: "user", parts: [{ text: text }] });
+            chatHistory.push({ role: "model", parts: [{ text: reply }] });
+            
+            // Keep only the last 10 turns (20 messages) to prevent huge payloads
+            if (chatHistory.length > 20) {
+                chatHistory = chatHistory.slice(chatHistory.length - 20);
+            }
+            
             setStatus("Answer returned", "ready");
         } catch (error) {
             console.error("Chat request failed:", error);
@@ -171,6 +183,7 @@
             welcomeCard.style.display = "";
         }
 
+        chatHistory = []; // Reset context
         messageInput.value = "";
         setStatus("Chat surface cleared", "ready");
         messageInput.focus();
