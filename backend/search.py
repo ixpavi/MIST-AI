@@ -255,11 +255,12 @@ def search_website_content(query):
                    AS snippet
             FROM website_content
             WHERE to_tsvector('english', content) @@ plainto_tsquery('english', %s)
+              AND ts_rank(to_tsvector('english', content), plainto_tsquery('english', %s)) > 0.1
             ORDER BY ts_rank(to_tsvector('english', content),
                              plainto_tsquery('english', %s)) DESC
             LIMIT 2
             """,
-            (query, query, query)
+            (query, query, query, query)
         )
 
         if rows:
