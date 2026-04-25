@@ -300,6 +300,8 @@ DEFAULT_REPLY = (
     "Or visit the SRM website: https://www.srmist.edu.in"
 )
 
+GREETINGS = {"hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening", "sup", "yo"}
+
 
 def search(user_message):
     """
@@ -312,6 +314,9 @@ def search(user_message):
         normalized = normalize(user_message)
         if not normalized:
             return "Please type a question so I can help you!"
+            
+        if normalized in GREETINGS:
+            return "Hello! I am MIST AI, your SRM University assistant. How can I help you today?"
 
         category = detect_category(user_message)
         result = None
