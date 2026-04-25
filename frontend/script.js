@@ -10,7 +10,6 @@
     var welcomeCard = document.getElementById("welcomeCard");
     var heroSection = document.getElementById("heroSection");
     var statusText = document.getElementById("statusText");
-    var apiState = document.getElementById("apiState");
     var toast = document.getElementById("toast");
 
     var isSending = false;
@@ -214,9 +213,6 @@
     function setStatus(text, state) {
         if (statusText) {
             statusText.textContent = text;
-        }
-        if (apiState) {
-            apiState.textContent = state;
         }
     }
 

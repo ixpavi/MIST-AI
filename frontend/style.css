@@ -519,14 +519,17 @@ button {
     scrollbar-gutter: stable;
 }
 
-.chat-messages::-webkit-scrollbar,
-.suggestion-stack::-webkit-scrollbar {
+.chat-messages::-webkit-scrollbar {
     width: 7px;
 }
 
-.chat-messages::-webkit-scrollbar-thumb,
-.suggestion-stack::-webkit-scrollbar-thumb {
+.chat-messages::-webkit-scrollbar-thumb {
     background: rgba(255, 248, 234, 0.18);
+}
+
+.suggestion-stack::-webkit-scrollbar {
+    display: none;
+    width: 0;
 }
 
 .welcome-signal {
