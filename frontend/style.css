@@ -74,9 +74,8 @@ button {
 .app-shell {
     position: relative;
     z-index: 1;
-    display: grid;
-    grid-template-columns: 82px minmax(0, 1fr);
-    height: 100dvh;
+    display: flex;
+    height: 100vh;
     padding: 16px;
     gap: 16px;
 }
@@ -92,6 +91,7 @@ button {
 }
 
 .mission-rail {
+    flex: 0 0 82px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -159,10 +159,11 @@ button {
 }
 
 .command-deck {
+    flex: 1;
     min-width: 0;
-    min-height: 0;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
 }
 
@@ -315,9 +316,10 @@ button {
 }
 
 .workspace {
+    flex: 1;
+    height: 100%;
     min-height: 0;
-    display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    display: flex;
     gap: 16px;
 }
 
@@ -328,6 +330,8 @@ button {
 }
 
 .prompt-panel {
+    flex: 0 0 320px;
+    height: 100%;
     display: flex;
     flex-direction: column;
     padding: 18px;
@@ -442,8 +446,11 @@ button {
 }
 
 .chat-stage {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-topbar {
@@ -489,6 +496,7 @@ button {
 }
 
 .chat-messages {
+    flex: 1;
     position: relative;
     min-height: 0;
     overflow-y: auto;
@@ -753,12 +761,12 @@ button {
     }
 
     .app-shell {
-        min-height: 100dvh;
+        min-height: 100vh;
         height: auto;
     }
 
     .workspace {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
     
     .chat-stage {
@@ -776,7 +784,7 @@ button {
         flex-direction: column;
         padding: 8px;
         gap: 8px;
-        height: 100dvh;
+        height: 100vh;
     }
 
     .mission-rail {
