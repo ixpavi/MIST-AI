@@ -154,8 +154,32 @@ def search_portal_features(query):
     return None
 
 
-def search_pyq():
-    """Return the fixed PYQ answer from the university_info table."""
+def search_pyq(query):
+    """Search for specific subject PYQ links or return the generic link."""
+    try:
+        # Remove common words to isolate the subject name
+        clean_query = query.replace("pyq", "").replace("previous year question", "").replace("paper", "").replace("give me", "").replace("for", "").strip()
+        
+        if len(clean_query) >= 2:
+            # Create a flexible word match (e.g. "data structures" -> "%data%structures%")
+            words = clean_query.lower().split()
+            flex_words = "%" + "%".join(words) + "%"
+            
+            rows = execute_fetch(
+                """
+                SELECT subject_name, pyq_link
+                FROM pyq_resources
+                WHERE LOWER(subject_code) = %s OR LOWER(subject_name) LIKE %s
+                LIMIT 1
+                """,
+                (clean_query.lower(), flex_words)
+            )
+            if rows:
+                name, link = rows[0]
+                return f"Here are the previous year question papers (PYQs) and study materials for {name}:\n{link}"
+    except Exception as e:
+        print(f"[SEARCH ERROR] search_pyq: {e}")
+        
     return "You can find all previous year question papers (PYQs) and study materials at The Helpers website: https://thehelpers.vercel.app/"
 
 
@@ -319,7 +343,7 @@ def search(user_message):
 
         # Route to the appropriate search function
         if category == "pyq":
-            result = search_pyq()
+            result = search_pyq(normalized)
 
         elif category == "portal_feature":
             result = search_portal_features(normalized)
