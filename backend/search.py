@@ -289,6 +289,11 @@ DEFAULT_REPLY = (
 
 GREETINGS = {"hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening", "sup", "yo"}
 
+def check_identity(text):
+    for phrase in ["who made", "who created", "who developed", "who is your developer", "what is mist", "what does mist stand for"]:
+        if phrase in text:
+            return True
+    return False
 
 def search(user_message):
     """
@@ -304,6 +309,9 @@ def search(user_message):
             
         if normalized in GREETINGS:
             return "Hello! I am MIST AI, your SRM University assistant. How can I help you today?"
+            
+        if check_identity(normalized):
+            return "I am MIST AI, the official student assistant for SRM University KTR campus. I was developed by GitHub user ixpavi (github.com/ixpavi)."
 
         category = detect_category(user_message)
         result = None
