@@ -19,9 +19,6 @@ except Exception as import_error:
     print(f"[LLM WARNING] google-generativeai is not available: {import_error}")
 
 
-MODEL_NAMES = ("gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest")
-
-
 def ask_llm(prompt: str) -> str:
     if not prompt or not prompt.strip():
         return "Please type a question so I can help you!"
@@ -33,17 +30,46 @@ def ask_llm(prompt: str) -> str:
     if not api_key:
         return "AI service is not configured."
 
+    # Strict system instructions for SRM context and formatting
+    system_instruction = (
+        "You are MIST AI, the official student assistant for SRM University KTR (Kattankulathur) campus. "
+        "CRITICAL RULES: "
+        "1. Strictly answer ONLY in the context of SRM University. If the user asks something outside of the SRM context or generic trivia, politely decline to answer. "
+        "2. Do NOT use any Markdown formatting! No asterisks (*), no hashtags (#), no backticks (`), and no bold text. "
+        "3. Provide answers in plain text only. Keep it concise, helpful, and fast. "
+        f"\n\nUser Question: {prompt.strip()}"
+    )
+
     try:
         genai.configure(api_key=api_key)
+        
+        # Use fastest models to ensure quick responses
+        fast_models = ("gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-flash-latest")
+        
+        # Strict safety settings to block profanity/bad language
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_LOW_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_LOW_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_LOW_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_LOW_AND_ABOVE"}
+        ]
+
         last_error = None
-        for model_name in MODEL_NAMES:
+        for model_name in fast_models:
             try:
                 model = genai.GenerativeModel(model_name)
                 response = model.generate_content(
-                    prompt.strip(),
-                    request_options={"timeout": 20}
+                    system_instruction,
+                    safety_settings=safety_settings,
+                    request_options={"timeout": 15}
                 )
-                text = getattr(response, "text", "") or ""
+                
+                try:
+                    text = response.text
+                except ValueError:
+                    # Raised when response is blocked by safety settings
+                    return "I cannot answer that. Please keep the conversation respectful and appropriate."
+                
                 return text.strip() or "AI service temporarily unavailable."
             except Exception as model_error:
                 last_error = model_error
