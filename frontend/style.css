@@ -30,11 +30,7 @@ body {
 body {
     margin: 0;
     overflow: hidden;
-    background:
-        radial-gradient(circle at 12% 18%, rgba(242, 90, 60, 0.19), transparent 28rem),
-        radial-gradient(circle at 88% 8%, rgba(65, 220, 203, 0.15), transparent 24rem),
-        radial-gradient(circle at 55% 96%, rgba(183, 249, 74, 0.11), transparent 31rem),
-        var(--void);
+    background: #111111;
     color: var(--paper);
     font-family: var(--font-display);
     text-rendering: optimizeLegibility;
@@ -64,26 +60,11 @@ button {
 }
 
 .scene-grid {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-        linear-gradient(rgba(255, 248, 234, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 248, 234, 0.045) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: linear-gradient(to bottom, transparent, black 16%, black 84%, transparent);
-    opacity: 0.36;
+    display: none;
 }
 
 .signal-aurora {
-    position: fixed;
-    inset: -18%;
-    pointer-events: none;
-    background:
-        conic-gradient(from 135deg at 50% 50%, transparent, rgba(246, 200, 79, 0.1), transparent, rgba(65, 220, 203, 0.12), transparent, rgba(242, 90, 60, 0.12), transparent);
-    filter: blur(34px);
-    animation: drift 24s linear infinite;
-    will-change: transform;
+    display: none;
 }
 
 @keyframes drift {
@@ -347,8 +328,8 @@ button {
 }
 
 .prompt-panel {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    display: flex;
+    flex-direction: column;
     padding: 18px;
     gap: 16px;
 }
@@ -372,6 +353,7 @@ button {
 }
 
 .suggestion-stack {
+    flex: 1;
     min-height: 0;
     display: grid;
     gap: 10px;
@@ -775,29 +757,84 @@ button {
         height: auto;
     }
 
-    .hero-band {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .signal-core {
-        display: none;
-    }
-
     .workspace {
         grid-template-columns: 1fr;
     }
+    
+    .chat-stage {
+        min-height: 600px;
+    }
+}
 
-    .prompt-panel {
-        min-height: auto;
+@media (max-width: 768px) {
+    body {
+        overflow: hidden;
+    }
+    
+    .app-shell {
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
+        gap: 8px;
+        height: 100dvh;
     }
 
-    .suggestion-stack {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        overflow: visible;
+    .mission-rail {
+        order: 2;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+        height: auto;
+        padding: 8px;
+    }
+
+    .rail-readout {
+        writing-mode: horizontal-tb;
+        margin-top: 0;
+        margin-left: auto;
+    }
+    
+    .brand-mark {
+        display: none;
+    }
+    
+    .rail-button {
+        width: 44px;
+        height: 44px;
+    }
+
+    .command-deck {
+        order: 1;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .workspace {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        gap: 8px;
+    }
+    
+    .prompt-panel {
+        display: none; /* Hide launch codes on mobile to save space, or keep it scrollable horizontally */
     }
 
     .chat-stage {
-        min-height: 660px;
+        flex: 1;
+        min-height: 0;
+    }
+    
+    .chat-messages {
+        padding: 10px;
+    }
+    
+    .message-bubble {
+        padding: 10px 12px;
+        font-size: 0.95rem;
     }
 }
 
