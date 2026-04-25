@@ -1,0 +1,236 @@
+(function () {
+    "use strict";
+
+    var API_URL = "/chat";
+
+    var chatMessages = document.getElementById("chatMessages");
+    var chatForm = document.getElementById("chatForm");
+    var messageInput = document.getElementById("messageInput");
+    var sendBtn = document.getElementById("sendBtn");
+    var welcomeCard = document.getElementById("welcomeCard");
+    var heroSection = document.getElementById("heroSection");
+    var statusText = document.getElementById("statusText");
+    var apiState = document.getElementById("apiState");
+    var toast = document.getElementById("toast");
+
+    var isSending = false;
+    var typingNode = null;
+    var toastTimer = null;
+    var scrollFrame = null;
+    var heroHidden = false;
+
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+
+    function init() {
+        chatForm.addEventListener("submit", onSubmit);
+        bindClick("clearBtn", clearChat);
+
+        document.querySelectorAll(".chip").forEach(function (button) {
+            button.addEventListener("click", function () {
+                sendMessage(button.getAttribute("data-query") || "");
+            });
+        });
+
+        messageInput.focus();
+        scrollToBottom(false);
+    }
+
+    function bindClick(id, handler) {
+        var element = document.getElementById(id);
+        if (element) {
+            element.addEventListener("click", handler);
+        }
+    }
+
+    function onSubmit(event) {
+        event.preventDefault();
+        sendMessage();
+    }
+
+    async function sendMessage(forcedText) {
+        if (isSending) return;
+
+        var text = (forcedText || messageInput.value).trim();
+        if (!text) return;
+
+        setSending(true);
+        hideHeroOnce();
+        hideWelcome();
+        appendMessage("user", text);
+        messageInput.value = "";
+        showTyping();
+
+        try {
+            var response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text })
+            });
+
+            if (!response.ok) {
+                throw new Error("Server returned " + response.status);
+            }
+
+            var data = await response.json();
+            hideTyping();
+            appendMessage("bot", data && data.reply ? data.reply : "I could not find an answer.");
+            setStatus("Answer returned", "ready");
+        } catch (error) {
+            console.error("Chat request failed:", error);
+            hideTyping();
+            appendMessage("bot", "I could not reach the server. Please make sure Flask is running at http://localhost:5000.");
+            setStatus("Backend connection failed", "offline");
+            showToast("Unable to send message. Check the backend server.");
+        } finally {
+            setSending(false);
+            messageInput.focus();
+            scrollToBottom(true);
+        }
+    }
+
+    function appendMessage(role, text) {
+        var row = document.createElement("div");
+        row.className = "message-row " + role;
+
+        var avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.textContent = role === "bot" ? "M" : "Y";
+
+        var wrap = document.createElement("div");
+        wrap.className = "bubble-wrap";
+
+        var bubble = document.createElement("div");
+        bubble.className = "message-bubble";
+        bubble.innerHTML = formatText(text);
+
+        var time = document.createElement("div");
+        time.className = "message-time";
+        time.textContent = getTime();
+
+        wrap.appendChild(bubble);
+        wrap.appendChild(time);
+        row.appendChild(avatar);
+        row.appendChild(wrap);
+        chatMessages.appendChild(row);
+        scrollToBottom(true);
+    }
+
+    function showTyping() {
+        hideTyping();
+
+        typingNode = document.createElement("div");
+        typingNode.className = "typing-row";
+
+        var avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.textContent = "M";
+
+        var dots = document.createElement("div");
+        dots.className = "typing-dots";
+        dots.setAttribute("aria-label", "Assistant is typing");
+        dots.innerHTML = "<span></span><span></span><span></span>";
+
+        typingNode.appendChild(avatar);
+        typingNode.appendChild(dots);
+        chatMessages.appendChild(typingNode);
+        scrollToBottom(true);
+    }
+
+    function hideTyping() {
+        if (typingNode && typingNode.parentNode) {
+            typingNode.parentNode.removeChild(typingNode);
+        }
+        typingNode = null;
+    }
+
+    function scrollToBottom(smooth) {
+        if (scrollFrame) {
+            cancelAnimationFrame(scrollFrame);
+        }
+
+        scrollFrame = requestAnimationFrame(function () {
+            chatMessages.scrollTo({
+                top: chatMessages.scrollHeight,
+                behavior: smooth ? "smooth" : "auto"
+            });
+
+            requestAnimationFrame(function () {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+            scrollFrame = null;
+        });
+    }
+
+    function clearChat() {
+        hideTyping();
+        chatMessages.querySelectorAll(".message-row, .typing-row").forEach(function (node) {
+            node.remove();
+        });
+
+        if (welcomeCard) {
+            welcomeCard.style.display = "";
+        }
+
+        messageInput.value = "";
+        setStatus("Chat surface cleared", "ready");
+        messageInput.focus();
+        scrollToBottom(false);
+    }
+
+    function hideHeroOnce() {
+        if (!heroHidden && heroSection) {
+            heroSection.style.display = "none";
+            heroHidden = true;
+        }
+    }
+
+    function hideWelcome() {
+        if (welcomeCard) {
+            welcomeCard.style.display = "none";
+        }
+    }
+
+    function setSending(value) {
+        isSending = value;
+        sendBtn.disabled = value;
+        messageInput.disabled = value;
+        sendBtn.textContent = value ? "Sending" : "Send";
+        setStatus(value ? "Querying PostgreSQL search layer..." : "Connected to the Flask relay", value ? "searching" : "ready");
+    }
+
+    function setStatus(text, state) {
+        if (statusText) {
+            statusText.textContent = text;
+        }
+        if (apiState) {
+            apiState.textContent = state;
+        }
+    }
+
+    function formatText(text) {
+        return String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(
+                /(https?:\/\/[^\s<]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+    }
+
+    function getTime() {
+        return new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function showToast(message) {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.add("show");
+        toastTimer = setTimeout(function () {
+            toast.classList.remove("show");
+        }, 3200);
+    }
+})();

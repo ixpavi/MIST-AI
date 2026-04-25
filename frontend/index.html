@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MIST AI - SRM student assistant powered by PostgreSQL search and Gemini fallback.">
+    <title>MIST AI - SRM Signal Deck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="scene-grid" aria-hidden="true"></div>
+    <div class="signal-aurora" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <aside class="mission-rail" aria-label="MIST AI controls">
+            <div class="brand-mark">
+                <span>M</span>
+            </div>
+
+            <button class="rail-button active" type="button" title="Chat deck" aria-label="Chat deck">
+                <span class="rail-glyph">AI</span>
+            </button>
+            <button class="rail-button" id="clearBtn" type="button" title="Clear chat" aria-label="Clear chat">
+                <span class="rail-glyph">CL</span>
+            </button>
+
+            <div class="rail-readout">
+                <span class="readout-dot"></span>
+                DB LIVE
+            </div>
+        </aside>
+
+        <main class="command-deck">
+
+
+            <section class="workspace">
+                <aside class="prompt-panel" aria-label="Prompt shortcuts">
+                    <div class="panel-heading">
+                        <p>Launch Codes</p>
+                        <span>Tap to ask</span>
+                    </div>
+
+                    <div class="suggestion-stack">
+                        <button class="chip hot" type="button" data-query="Does SRM provide hostel?">
+                            <span>Hostel</span>
+                            <small>rooms, rules, facilities</small>
+                        </button>
+                        <button class="chip mint" type="button" data-query="Where can I check attendance?">
+                            <span>Attendance</span>
+                            <small>portal route</small>
+                        </button>
+                        <button class="chip amber" type="button" data-query="Where do I pay fees?">
+                            <span>Fees</span>
+                            <small>payment info</small>
+                        </button>
+                        <button class="chip cyan" type="button" data-query="How can I download hall ticket?">
+                            <span>Hall Ticket</span>
+                            <small>exam access</small>
+                        </button>
+                        <button class="chip lime" type="button" data-query="Give DBMS PYQ">
+                            <span>DBMS PYQ</span>
+                            <small>paper links</small>
+                        </button>
+                        <button class="chip ink" type="button" data-query="Where is the placement office?">
+                            <span>Placements</span>
+                            <small>campus location</small>
+                        </button>
+                    </div>
+
+                    <div class="mini-console" aria-label="System status">
+                        <div><span>API</span><strong id="apiState">ready</strong></div>
+                        <div><span>MODE</span><strong>retrieval</strong></div>
+                        <div><span>STACK</span><strong>Flask + PG</strong></div>
+                    </div>
+                </aside>
+
+                <section class="chat-stage" aria-label="Chat">
+                    <div class="chat-topbar">
+                        <div>
+                            <p>Conversation</p>
+                            <span id="statusText">Connected to the Flask relay</span>
+                        </div>
+                        <div class="live-pill">
+                            <span></span>
+                            Online
+                        </div>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages" aria-live="polite">
+                        <div class="welcome-signal" id="welcomeCard">
+                            <p class="welcome-kicker">Ask like you are at the help desk.</p>
+                            <h2>How can MIST help you today?</h2>
+                            <p>Try a launch code, or type your own question below.</p>
+                        </div>
+                    </div>
+
+                    <form class="chat-composer" id="chatForm">
+                        <label for="messageInput" class="sr-only">Message</label>
+                        <input
+                            type="text"
+                            id="messageInput"
+                            placeholder="Ask about fees, PYQs, hostels, portals, placements..."
+                            autocomplete="off"
+                            maxlength="500"
+                        >
+                        <button id="sendBtn" type="submit" title="Send message">
+                            <span>Send</span>
+                        </button>
+                    </form>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
