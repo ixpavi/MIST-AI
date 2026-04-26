@@ -13,6 +13,12 @@ from database import execute_fetch
 # Category keywords for intent detection
 # ---------------------------------------------------------------------------
 CATEGORY_KEYWORDS = {
+    "faculty": [
+        "faculty", "professor", "prof", "teacher", "lecturer",
+        "staff", "hod", "head of department", "dean",
+        "who teaches", "who is dr", "who is prof",
+        "sir", "maam", "madam", "ma'am"
+    ],
     "pyq": [
         "pyq", "previous year", "previous year paper", "question paper",
         "old paper", "past paper", "past papers", "model paper",
@@ -60,7 +66,11 @@ def detect_category(text):
     if not norm:
         return "general"
 
-    # Check in priority order
+    # Check in priority order  (faculty first so names don't leak to LLM)
+    for kw in CATEGORY_KEYWORDS["faculty"]:
+        if kw in norm:
+            return "faculty"
+
     for kw in CATEGORY_KEYWORDS["pyq"]:
         if kw in norm:
             return "pyq"
@@ -87,6 +97,76 @@ def detect_category(text):
 # ---------------------------------------------------------------------------
 # Category-specific search functions
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Faculty search  (returns SRM staff-finder link)
+# ---------------------------------------------------------------------------
+
+# Words to strip when extracting the faculty name from the query
+_FACULTY_STRIP_WORDS = {
+    "who", "is", "tell", "me", "about", "details", "of", "the",
+    "faculty", "professor", "prof", "teacher", "lecturer", "staff",
+    "hod", "head", "department", "dean", "sir", "maam", "madam",
+    "ma'am", "give", "show", "find", "search", "info", "information",
+    "teaches", "teaching", "at", "srm", "srmist", "university",
+    "ktr", "kattankulathur", "campus", "dr", "mr", "mrs", "ms",
+    "please", "can", "you", "do", "know", "i", "want", "to",
+    "what", "where", "which", "how", "contact", "email", "phone",
+    "number", "cabin", "office", "room", "a", "an", "and", "in",
+    "for", "from", "with", "on",
+}
+
+
+def _extract_faculty_name(user_text):
+    """Pull a likely person-name from the user's query.
+
+    Strategy:
+    1. Strip common noise words.
+    2. Whatever is left is treated as the name.
+    3. Title-case it for display.
+    """
+    norm = normalize(user_text)
+    tokens = norm.split()
+    name_tokens = [t for t in tokens if t not in _FACULTY_STRIP_WORDS]
+    return " ".join(name_tokens).strip().title()
+
+
+def search_faculty(user_text):
+    """Return the SRM staff-finder link for a faculty name.
+
+    The SRM website provides a live search at
+    https://www.srmist.edu.in/staff-finder/  which lists all matching
+    faculty (including duplicates).  We also provide the direct faculty
+    listing page.
+    """
+    name = _extract_faculty_name(user_text)
+
+    staff_finder = "https://www.srmist.edu.in/staff-finder/"
+    faculty_list = "https://www.srmist.edu.in/faculty/"
+
+    if name:
+        # Build a slug for a direct profile guess  (e.g. "Dr Aishwarya R" -> "dr-aishwarya-r")
+        slug = name.lower().replace(" ", "-")
+        direct_link = f"https://www.srmist.edu.in/faculty/{slug}/"
+
+        return (
+            f"You can find the profile and details of {name} on the SRM website:\n\n"
+            f"1. Search on Staff Finder (lists all matching faculty, including those with the same name):\n"
+            f"   {staff_finder}\n\n"
+            f"2. Direct profile link (if available):\n"
+            f"   {direct_link}\n\n"
+            f"3. Browse the full faculty directory:\n"
+            f"   {faculty_list}"
+        )
+
+    # No name could be extracted - return the general links
+    return (
+        "You can search for any faculty member on the SRM Staff Finder:\n"
+        f"{staff_finder}\n\n"
+        f"Or browse the complete faculty listing:\n"
+        f"{faculty_list}"
+    )
+
 
 def search_portals(query):
     """Search the portals table."""
@@ -304,6 +384,7 @@ def search_website_content(query):
 DEFAULT_REPLY = (
     "I'm sorry, I couldn't find specific information about that. "
     "You can try asking about:\n"
+    "  - Faculty / Professor details\n"
     "  - Hostel, fees, attendance, scholarships\n"
     "  - Previous year question papers (PYQ)\n"
     "  - Campus locations (library, tech park, food court)\n"
@@ -342,7 +423,11 @@ def search(user_message):
         result = None
 
         # Route to the appropriate search function
-        if category == "pyq":
+        if category == "faculty":
+            # Faculty queries are answered with direct links, never sent to LLM
+            return search_faculty(user_message)
+
+        elif category == "pyq":
             result = search_pyq(normalized)
 
         elif category == "portal_feature":

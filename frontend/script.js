@@ -19,20 +19,51 @@
     var heroHidden = false;
     var chatHistory = [];
 
+    // ---- Two-step flow state ----
+    // When a chip requires follow-up input (e.g. faculty name),
+    // we store the pending action here.
+    var pendingAction = null;  // e.g. { type: "faculty" }
+
     document.addEventListener("DOMContentLoaded", init, { once: true });
 
     function init() {
         chatForm.addEventListener("submit", onSubmit);
         bindClick("clearBtn", clearChat);
 
+        // Bind all sidebar chip buttons
         document.querySelectorAll(".chip").forEach(function (button) {
             button.addEventListener("click", function () {
-                sendMessage(button.getAttribute("data-query") || "");
+                var action = button.getAttribute("data-action");
+                var query = button.getAttribute("data-query");
+
+                if (action) {
+                    // Two-step flow (e.g. faculty search)
+                    handleAction(action);
+                } else if (query) {
+                    // One-step flow — send the query directly
+                    sendMessage(query);
+                }
             });
         });
 
         messageInput.focus();
         scrollToBottom(false);
+    }
+
+    // ---- Two-step action handler ----
+    function handleAction(action) {
+        if (isSending) return;
+
+        hideWelcome();
+        hideHeroOnce();
+
+        if (action === "faculty") {
+            appendMessage("bot", "Please enter the faculty name you want to search for:");
+            pendingAction = { type: "faculty" };
+            messageInput.placeholder = "Type faculty name...";
+            messageInput.classList.add("awaiting-input");
+            messageInput.focus();
+        }
     }
 
     function bindClick(id, handler) {
@@ -52,6 +83,18 @@
 
         var text = (forcedText || messageInput.value).trim();
         if (!text) return;
+
+        // Check if we have a pending action (two-step flow)
+        if (!forcedText && pendingAction) {
+            if (pendingAction.type === "faculty") {
+                // Prefix with "faculty" so the backend detects the intent
+                text = "faculty " + text;
+            }
+            // Clear pending state
+            pendingAction = null;
+            messageInput.placeholder = "Ask about faculty, fees, PYQs, hostels, portals, placements...";
+            messageInput.classList.remove("awaiting-input");
+        }
 
         setSending(true);
         hideHeroOnce();
@@ -181,6 +224,11 @@
         if (welcomeCard) {
             welcomeCard.style.display = "";
         }
+
+        // Reset pending action
+        pendingAction = null;
+        messageInput.placeholder = "Ask about faculty, fees, PYQs, hostels, portals, placements...";
+        messageInput.classList.remove("awaiting-input");
 
         chatHistory = []; // Reset context
         messageInput.value = "";

@@ -31,6 +31,10 @@ FRONTEND_DIR = os.path.normpath(
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 CORS(app)
 
+# Initialize database schema on import (needed for gunicorn workers in production)
+print("[*] Initializing database...")
+init_db()
+
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -112,10 +116,11 @@ def history():
 
 
 # ---------------------------------------------------------------------------
-# Entry point
+# Entry point (local development only - production uses gunicorn)
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("[*] Initializing database...")
-    init_db()
-    print("[*] Starting MIST AI server on http://localhost:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"[*] Starting MIST AI server on http://localhost:{port}")
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
+
+

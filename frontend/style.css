@@ -509,6 +509,18 @@ button {
     scrollbar-gutter: stable;
 }
 
+/* ---- Input awaiting state (two-step flow like faculty search) ---- */
+#messageInput.awaiting-input {
+    border-color: var(--solar);
+    box-shadow: 0 0 0 4px rgba(246, 200, 79, 0.15);
+    animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(246, 200, 79, 0.15); }
+    50%      { box-shadow: 0 0 0 6px rgba(246, 200, 79, 0.3);  }
+}
+
 .chat-messages::-webkit-scrollbar {
     width: 7px;
 }
