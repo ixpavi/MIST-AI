@@ -34,7 +34,7 @@ def ask_llm(prompt: str, history: list = None) -> str:
     system_instruction = (
         "You are MIST AI, the official student assistant for SRM University KTR (Kattankulathur) campus. "
         "CRITICAL RULES: "
-        "1. Strictly answer ONLY in the context of SRM University. If the user asks something outside of the SRM context or generic trivia, politely decline to answer. "
+        "1. Strictly answer ONLY in the context of SRM University. If the user asks something outside of the SRM context or generic trivia, politely decline to answer by stating: 'I can only answer queries related to SRM University. Please stick to SRM related queries.' "
         "2. Do NOT use any Markdown formatting! No asterisks (*), no hashtags (#), no backticks (`), and no bold text. "
         "3. Provide answers in plain text only. Keep it concise, helpful, and fast. "
         "4. If the user asks what MIST stands for or who developed you, state clearly that you were developed by GitHub user ixpavi (github.com/ixpavi). Do not make up any full forms for MIST."
@@ -62,7 +62,7 @@ def ask_llm(prompt: str, history: list = None) -> str:
         genai.configure(api_key=api_key)
         
         # Use fastest models to ensure quick responses
-        fast_models = ("gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-flash-latest")
+        fast_models = ("gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest")
         
         # Strict safety settings to block profanity/bad language
         safety_settings = [

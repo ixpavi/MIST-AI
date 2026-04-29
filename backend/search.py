@@ -109,7 +109,7 @@ _FACULTY_STRIP_WORDS = {
     "hod", "head", "department", "dean", "sir", "maam", "madam",
     "ma'am", "give", "show", "find", "search", "info", "information",
     "teaches", "teaching", "at", "srm", "srmist", "university",
-    "ktr", "kattankulathur", "campus", "dr", "mr", "mrs", "ms",
+    "ktr", "kattankulathur", "campus",
     "please", "can", "you", "do", "know", "i", "want", "to",
     "what", "where", "which", "how", "contact", "email", "phone",
     "number", "cabin", "office", "room", "a", "an", "and", "in",
@@ -145,15 +145,23 @@ def search_faculty(user_text):
     faculty_list = "https://www.srmist.edu.in/faculty/"
 
     if name:
-        # Build a slug for a direct profile guess  (e.g. "Dr Aishwarya R" -> "dr-aishwarya-r")
+        # Build a slug for a direct profile guess
         slug = name.lower().replace(" ", "-")
-        direct_link = f"https://www.srmist.edu.in/faculty/{slug}/"
+        slug_parts = slug.split("-")
+        has_title = slug_parts[0] in ["dr", "mr", "mrs", "ms"]
+
+        if has_title:
+            direct_link = f'https://www.srmist.edu.in/faculty/{slug}/'
+        else:
+            dr_slug = f"dr-{slug}"
+            direct_link = (f'https://www.srmist.edu.in/faculty/{dr_slug}/\n'
+                           f'   https://www.srmist.edu.in/faculty/{slug}/')
 
         return (
             f"You can find the profile and details of {name} on the SRM website:\n\n"
             f"1. Search on Staff Finder (lists all matching faculty, including those with the same name):\n"
             f"   {staff_finder}\n\n"
-            f"2. Direct profile link (if available):\n"
+            f"2. Direct profile link:\n"
             f"   {direct_link}\n\n"
             f"3. Browse the full faculty directory:\n"
             f"   {faculty_list}"
@@ -359,7 +367,7 @@ def search_website_content(query):
                    AS snippet
             FROM website_content
             WHERE to_tsvector('english', content) @@ plainto_tsquery('english', %s)
-              AND ts_rank(to_tsvector('english', content), plainto_tsquery('english', %s)) > 0.1
+              AND ts_rank(to_tsvector('english', content), plainto_tsquery('english', %s)) > 0.4
             ORDER BY ts_rank(to_tsvector('english', content),
                              plainto_tsquery('english', %s)) DESC
             LIMIT 2
