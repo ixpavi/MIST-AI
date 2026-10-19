@@ -35,7 +35,7 @@ KB_FILES = ["srm_knowledge.json", "kb_official.json", "kb_campus.json", "kb_camp
 MIN_SEMANTIC = 0.62       # local semantic score (dense + lexical bonus) needed to call a chunk relevant
 EXTRACT_MIN = 0.70        # at or above this, answer straight from the matched fact (no language model)
 MIN_VECTOR_SCORE = 0.60
-MIN_KEYWORD_SCORE = 0.12
+MIN_KEYWORD_SCORE = 0.28
 TOPIC_BOOST = 0.05
 OFFSCOPE_CONF = 0.55
 STOP = set("a an the is are was were of to in on for and or do does did i you me my it its what how when where "
@@ -240,11 +240,42 @@ def _bank_matrix(chunks):
     return mat, idx
 
 
+_btf = {"key": None, "word": None, "char": None, "wmat": None, "cmat": None, "idx": None}
+BANK_TFIDF_WEIGHT = 0.85
+
+
+def _bank_tfidf_scores(query, chunks):
+    """Similarity of the query to the stored paraphrased questions of each fact (max per fact), using the same
+    word + character TF-IDF as the main keyword search. Lets 'is there a place to swim' find the swimming-pool fact."""
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        key = (len(chunks), sum(len(c["text"]) for c in chunks))
+        if _btf["key"] != key:
+            pairs = _bank_questions(chunks)
+            if not pairs:
+                return np.zeros(len(chunks), dtype="float32")
+            qs = [q for q, _ in pairs]
+            word = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, stop_words="english", token_pattern=r"[a-z0-9]{2,}")
+            char = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), sublinear_tf=True)
+            _btf.update(key=key, word=word, char=char, wmat=word.fit_transform(qs), cmat=char.fit_transform(qs),
+                        idx=np.array([i for _, i in pairs]))
+        w = (_btf["wmat"] @ _btf["word"].transform([query]).T).toarray().ravel()
+        c = (_btf["cmat"] @ _btf["char"].transform([query]).T).toarray().ravel()
+        sims = 0.5 * w + 0.5 * c
+        best = np.zeros(len(chunks), dtype="float32")
+        np.maximum.at(best, _btf["idx"], sims.astype("float32"))
+        return best
+    except Exception as e:
+        log.warning("bank tfidf failed: %s", str(e)[:80])
+        return np.zeros(len(chunks), dtype="float32")
+
+
 def retrieve(query, chunks, intent=None, k=4, qvec=None, qplain=None):
     """Retrieval by meaning. Order of preference:
        1) local semantic model (+ small TF-IDF bonus)   2) Gemini embeddings (+TF-IDF)   3) TF-IDF only.
     Returns (relevant chunks, best score, method)."""
     kw = np.array(_keyword_scores(query, chunks), dtype="float32")
+    kw = np.maximum(kw, BANK_TFIDF_WEIGHT * _bank_tfidf_scores(query, chunks))
     mat = _local_matrix(chunks) if semantic.ready() else None
     if mat is not None:
         qv = qvec if qvec is not None else semantic.encode_queries([query])[0]
@@ -473,6 +504,10 @@ def answer(query, history=None, name="", today=None, action=None):
                     return _result(text, "skill", intent, conf, skill=fn.__name__)
         if intent == "offtopic" and conf >= OFFSCOPE_CONF:
             return _result(SCOPE_HELP, "decline", intent, conf, score=score)
+
+    if intent == "offtopic" and conf >= 0.7 and score < 0.6:
+        # confidently off-topic and only a weak accidental match: decline instead of showing unrelated SRM text
+        return _result(SCOPE_HELP, "decline", intent, conf, score=score)
 
     result = _result("", "kb", intent, conf, score=score, grounded=bool(top), understood=query,
                      sources=sorted({c["source"] for c in top if c.get("source")}))

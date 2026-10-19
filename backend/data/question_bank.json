@@ -1,72 +1,532 @@
 {
- "about-overview": ["what is srm", "tell me about srmist", "give me an overview of the university", "when was srm founded", "how big is srm in terms of students and faculty", "what faculties and schools does srm run"],
- "about-campuses": ["how many srm campuses are there", "list all srm campuses", "where are srm campuses located", "does srm have campuses outside chennai", "which srm campus is in delhi or haryana"],
- "about-ktr": ["tell me about the main campus", "how big is the kattankulathur campus", "how many acres is srm", "what facilities does ktr campus have", "describe the ktr campus"],
- "rank-naac": ["what is srm naac grade", "is srm naac accredited", "srm accreditation status", "does srm have an a++ grade"],
- "rank-nirf": ["what is srm nirf rank", "how is srm ranked in india", "srm ranking among universities", "nirf ranking of srmist in 2025", "is srm a top ranked university"],
- "accred-iet": ["which srm courses are internationally accredited", "does srm have abet or iet accreditation", "international accreditation for cse at srm"],
- "contact-general": ["what is the srm phone number", "how do i contact srm", "srm official website", "srm main office contact details", "srm switchboard number"],
- "adm-srmjeee": ["how do i get admission in btech", "which entrance exam is used for btech at srm", "what is srmjeee", "how is admission done for engineering", "admission process for engineering at srm"],
- "adm-phases": ["how many phases of srmjeee are there", "srmjeee important dates", "when is srmjeee phase 1 phase 2 phase 3", "last date to apply for srmjeee", "srmjeee exam dates 2026"],
- "adm-fee": ["what is the srmjeee application fee", "how much does it cost to apply", "is the application fee refundable", "where do i apply for srmjeee"],
- "adm-elig-bio": ["eligibility for biotechnology btech", "do i need maths for biomedical engineering", "minimum marks for genetic engineering at srm"],
- "adm-scholar": ["scholarship for srmjeee candidates", "do i need counselling to get a scholarship", "scholarship eligibility srmjeee"],
- "hostel-overview": ["tell me about srm hostels", "how many hostels are at ktr", "what facilities do hostels provide", "hostel facilities at srm", "is there a hostel for boys and girls"],
- "hostel-fees": ["what are the hostel fees", "how much is hostel and mess fee", "hostel fee refund policy", "what does the hostel fee include", "is hostel fee refundable"],
- "sports": ["what sports facilities are there", "does srm have a gym or playground", "sports and recreation at srm", "which games can i play on campus"],
- "placements-career": ["how are placements at srm", "who handles placements", "career centre contact number", "does srm have a placement cell", "how can i get a job through campus placements"],
- "placements-recruiters": ["which companies recruit from srm", "top recruiters at srm", "does google or amazon hire from srm", "list of companies visiting srm campus", "core companies for ece placements"],
- "programs": ["which courses does srm offer", "where can i find all programmes", "how do i search programs and departments", "list of degrees offered at srm"],
- "mist-about": ["who made mist ai", "who built this chatbot", "is mist ai official", "what is mist ai"],
- "jeee-overview": ["what is srmjeee exam", "which campuses accept srmjeee scores", "how are campuses allotted after srmjeee", "is srmjeee common for all srm campuses"],
- "jeee-eligibility": ["what is the eligibility for btech at srm", "minimum marks required in 12th for engineering", "age limit for srm engineering admission", "which subjects are compulsory in 12th for srmjeee", "can nri students apply through srmjeee", "which boards are accepted"],
- "jeee-pattern": ["what is the srmjeee exam pattern", "how many questions are in srmjeee", "is there negative marking in srmjeee", "duration of the srmjeee exam", "how is srmjeee conducted online", "can i take srmjeee at home", "subject wise marks in srmjeee", "is srmjeee on mobile or laptop"],
- "jeee-apply": ["how to apply for srmjeee", "steps to fill the application form", "how to register for srmjeee", "what to upload in the application", "can i apply for multiple phases", "payment pending after paying application fee", "what payment modes are accepted for the application"],
- "jeee-slot-admit": ["how to book srmjeee slot", "can i change my slot after booking", "how to download admit card", "what id is needed on exam day", "when does slot booking open", "is there a mock test"],
- "jeee-counselling": ["how does srmjeee counselling work", "how much to pay after counselling", "what is the provisional allotment letter", "what happens if i do not pay the counselling fee", "registration fee and counselling fee amount", "are counselling fees refundable"],
- "jeee-scholarship": ["what scholarships does srm give for srmjeee", "fee waiver based on rank", "direct admission for state toppers", "scholarship for iit jee rankers", "how much waiver can i get", "sports persons scholarship"],
- "jeee-misc": ["is there negative marking", "can i appear in all phases", "what documents are required at application", "when do classes start", "do i need computer knowledge for the exam", "system requirements for the online exam", "can i correct mistakes in my application", "when are results declared"],
- "adm-contacts": ["admission helpline number", "who to call for engineering admission queries", "contact number for management and law admissions", "phone number of admissions office", "admission enquiry contact"],
- "adm-pg": ["which exam for mtech admission", "how to get admission for barch", "entrance for architecture at srm", "eligibility for mtech", "is there an entrance for bdes", "genetic counselling entrance exam"],
- "hostel-capacity": ["how many girls hostels are there", "capacity of boys hostels", "what food is available in hostel mess", "are there north and south indian menus", "is there an international hostel", "number of hostel blocks"],
- "hostel-apply": ["how do i apply for hostel", "how to book hostel room online", "hostel booking portal", "when can first year students book a hostel", "can i stay in hostel without admission", "where to book hostel"],
- "hostel-eligibility": ["who is eligible for hostel", "can part time students stay in hostel", "who cannot get a hostel room", "is hostel available for research scholars"],
- "hostel-contact": ["hostel helpdesk email", "hostel office phone number", "who is the director of hostels", "contact warden", "hostel complaint contact"],
- "placements-tiers": ["which companies pay above 20 lakhs", "what are marquee companies", "dream companies list", "super dream companies", "salary packages offered by recruiters"],
- "placements-stats": ["what is the highest package at srm", "how many offers did srm students get", "placement statistics", "how many companies visited campus", "microsoft package at srm"],
- "cal-sh-odd": ["when do odd semester classes start", "when are cycle tests for odd semester", "when is the model exam in october", "odd semester academic calendar 2026", "when do first year classes begin", "university exam dates november"],
- "cal-sh-even": ["when does the even semester begin", "even semester academic calendar", "when are cycle tests in january", "when do end semester exams start in april", "last working day of even semester"],
- "cal-cet": ["academic schedule for engineering students", "where can i find the cet academic calendar", "engineering semester dates 2026-27"],
- "cal-structure": ["how is a semester structured", "what is a day order", "how many cycle tests are there", "do saturdays have classes", "what are internal assessments"],
- "exam-rules": ["what is the attendance requirement", "what happens if my attendance is low", "can i be detained from exams", "do i need a hall ticket", "exam registration rules", "what if i lose my hall ticket"],
- "exam-revaluation": ["how to apply for revaluation", "can i get my answer script rechecked", "revaluation deadline", "is revaluation allowed for practicals", "what if i miss an exam for illness", "makeup exam rules"],
- "exam-malpractice": ["what is the penalty for cheating in exams", "what happens if i am caught copying", "can i take my phone in the exam hall", "exam malpractice punishment"],
- "lib-hours": ["library timings", "when does the library open", "until what time is the central library open", "is the library open on sunday", "law library timings", "library open 24 hours"],
- "lib-borrow": ["how many books can i borrow", "how long can i keep a library book", "can i renew books online", "can i borrow a laptop from the library", "library membership rules for students"],
- "lib-fines": ["library fine for late return", "what is the overdue charge", "what if i lose a library book", "late fee for borrowed laptop", "library rules for bags"],
- "transport-info": ["how to get a bus pass", "does srm have buses from chennai", "what is the bus fee", "how to book college bus online", "duplicate bus pass cost", "what do i need for bus facility"],
- "transport-timings": ["college bus timings", "when does the morning bus reach campus", "what time does the bus leave in the evening", "transport office phone number", "bus timings for science and humanities students"],
- "clubs-central": ["what clubs are there at srm", "list of student clubs", "music dance and drama clubs", "is there a gaming club", "how to join a club", "women empowerment club"],
- "clubs-ctech": ["technical clubs for cse", "google developer group at srm", "coding clubs in computing technologies", "is there a quantum computing club", "foss club srm"],
- "clubs-cintel-nwc": ["ai clubs at srm", "tedx srmist", "srm hackathon organisers", "student associations in cintel", "ideathon at srm"],
- "antiragging": ["anti ragging helpline number", "how to report ragging", "what is the punishment for ragging", "national anti ragging helpline", "who is the anti ragging committee chairman"],
- "scholar-merit": ["founders scholarship criteria", "scholarship for top 100 rank", "srm merit scholarship rank 101 to 500", "cgpa needed to keep scholarship", "scholarship renewal conditions"],
- "scholar-other": ["scholarship for children of defence personnel", "employee ward scholarship", "need based scholarship income limit", "scholarship for differently abled students", "alumni scholarship", "arts and culture scholarship", "socio economic scholarship"],
- "scholar-faculties": ["scholarship for mba", "scholarship for medicine students", "law school scholarship", "scholarship percentile for science and humanities"],
- "adm-policy-fees": ["application fee for non engineering programmes", "what is the application fee for law or management", "is cuet accepted at srm", "is clat accepted for law at srm", "entrance exams used by srm"],
- "adm-policy-refund": ["how to withdraw my admission", "refund rules after cancelling admission", "last date for withdrawal", "how long does the refund take", "can i change my course after admission", "how are refunds paid"],
- "adm-policy-docs": ["documents required for admission", "what certificates are needed for enrolment", "does srm appoint agents for admission", "is there a fake srm website", "official admissions email", "lateral entry at srm"],
- "adm-mba-law": ["how to get admission for mba", "eligibility for mba at srm", "which entrance for law at srm", "can cat score be used for srm mba", "five year integrated law admission"],
- "adm-health": ["which health science courses does srm offer", "how to get mbbs at srm", "bpt or pharmacy admission", "nursing admission at srm", "pharm d admission", "mph or mha programmes"],
- "adm-international": ["admission for foreign students", "fee waiver for nri students", "scholarship for international students", "sat score fee waiver", "how can an oci card holder apply"],
- "ir-abroad": ["semester abroad program", "can i study abroad from srm", "international exchange programme", "dual degree with foreign university", "international relations office contact"],
- "colleges": ["which colleges are there in srm", "does srm have a law college", "does srm have agriculture", "distance and online education at srm", "what faculties does srm ktr have"],
- "portals-links": ["student portal link", "where to find the academic calendar", "examination timetable link", "program finder website", "alumni portal"],
- "reach-ktr": ["how to reach srm kattankulathur", "distance from chennai airport to srm", "which railway station is nearest to srm", "address of srm kattankulathur", "how far is srm from koyambedu"],
- "reach-visit": ["visiting hours of srm", "can visitors come to campus", "hotels near srm", "campus tour", "phone number for visitors"],
- "sports-facilities": ["is there a swimming pool at srm", "football and hockey grounds at srm", "does srm have tennis courts", "indoor stadium at srm", "gym facilities in hostel", "aquatic complex"],
- "sports-quota": ["sports quota admission", "how to join srm sports team", "scholarship for sportspersons", "does srm give coaching for athletes"],
- "hostel-rules-1": ["hostel rules and regulations", "can i keep food in my room", "are smoking and alcohol allowed", "how is hostel room allotted", "do i need an id card in the hostel"],
- "hostel-rules-2": ["can parents stay in my hostel", "hostel fee refund if i withdraw", "what is the fine for hostel rule violation", "hostel complaint register", "can relatives stay in hostel", "summer break hostel rules"],
- "campus-life": ["is there wifi on campus", "are there food courts and atms on campus", "does srm have ncc and nss", "is there a health centre on campus", "counselling services for students", "robotics club at srm", "festivals celebrated at srm"]
+ "about-overview": [
+  "what is srm",
+  "tell me about srmist",
+  "give me an overview of the university",
+  "when was srm founded",
+  "how big is srm in terms of students and faculty",
+  "what faculties and schools does srm run"
+ ],
+ "about-campuses": [
+  "how many srm campuses are there",
+  "list all srm campuses",
+  "where are srm campuses located",
+  "does srm have campuses outside chennai",
+  "which srm campus is in delhi or haryana"
+ ],
+ "about-ktr": [
+  "tell me about the main campus",
+  "how big is the kattankulathur campus",
+  "how many acres is srm",
+  "what facilities does ktr campus have",
+  "describe the ktr campus"
+ ],
+ "rank-naac": [
+  "what is srm naac grade",
+  "is srm naac accredited",
+  "srm accreditation status",
+  "does srm have an a++ grade"
+ ],
+ "rank-nirf": [
+  "what is srm nirf rank",
+  "how is srm ranked in india",
+  "srm ranking among universities",
+  "nirf ranking of srmist in 2025",
+  "is srm a top ranked university"
+ ],
+ "accred-iet": [
+  "which srm courses are internationally accredited",
+  "does srm have abet or iet accreditation",
+  "international accreditation for cse at srm"
+ ],
+ "contact-general": [
+  "what is the srm phone number",
+  "how do i contact srm",
+  "srm official website",
+  "srm main office contact details",
+  "srm switchboard number"
+ ],
+ "adm-srmjeee": [
+  "how do i get admission in btech",
+  "which entrance exam is used for btech at srm",
+  "what is srmjeee",
+  "how is admission done for engineering",
+  "admission process for engineering at srm"
+ ],
+ "adm-phases": [
+  "how many phases of srmjeee are there",
+  "srmjeee important dates",
+  "when is srmjeee phase 1 phase 2 phase 3",
+  "last date to apply for srmjeee",
+  "srmjeee exam dates 2026"
+ ],
+ "adm-fee": [
+  "what is the srmjeee application fee",
+  "how much does it cost to apply",
+  "is the application fee refundable",
+  "where do i apply for srmjeee"
+ ],
+ "adm-elig-bio": [
+  "eligibility for biotechnology btech",
+  "do i need maths for biomedical engineering",
+  "minimum marks for genetic engineering at srm"
+ ],
+ "adm-scholar": [
+  "scholarship for srmjeee candidates",
+  "do i need counselling to get a scholarship",
+  "scholarship eligibility srmjeee"
+ ],
+ "hostel-overview": [
+  "tell me about srm hostels",
+  "how many hostels are at ktr",
+  "what facilities do hostels provide",
+  "hostel facilities at srm",
+  "is there a hostel for boys and girls"
+ ],
+ "hostel-fees": [
+  "what are the hostel fees",
+  "how much is hostel and mess fee",
+  "hostel fee refund policy",
+  "what does the hostel fee include",
+  "is hostel fee refundable"
+ ],
+ "sports": [
+  "what sports facilities are there",
+  "does srm have a gym or playground",
+  "sports and recreation at srm",
+  "which games can i play on campus"
+ ],
+ "placements-career": [
+  "how are placements at srm",
+  "who handles placements",
+  "career centre contact number",
+  "does srm have a placement cell",
+  "how can i get a job through campus placements"
+ ],
+ "placements-recruiters": [
+  "which companies recruit from srm",
+  "top recruiters at srm",
+  "does google or amazon hire from srm",
+  "list of companies visiting srm campus",
+  "core companies for ece placements"
+ ],
+ "programs": [
+  "which courses does srm offer",
+  "where can i find all programmes",
+  "how do i search programs and departments",
+  "list of degrees offered at srm"
+ ],
+ "mist-about": [
+  "who made mist ai",
+  "who built this chatbot",
+  "is mist ai official",
+  "what is mist ai"
+ ],
+ "jeee-overview": [
+  "what is srmjeee exam",
+  "which campuses accept srmjeee scores",
+  "how are campuses allotted after srmjeee",
+  "is srmjeee common for all srm campuses"
+ ],
+ "jeee-eligibility": [
+  "what is the eligibility for btech at srm",
+  "minimum marks required in 12th for engineering",
+  "age limit for srm engineering admission",
+  "which subjects are compulsory in 12th for srmjeee",
+  "can nri students apply through srmjeee",
+  "which boards are accepted"
+ ],
+ "jeee-pattern": [
+  "what is the srmjeee exam pattern",
+  "how many questions are in srmjeee",
+  "is there negative marking in srmjeee",
+  "duration of the srmjeee exam",
+  "how is srmjeee conducted online",
+  "can i take srmjeee at home",
+  "subject wise marks in srmjeee",
+  "is srmjeee on mobile or laptop"
+ ],
+ "jeee-apply": [
+  "how to apply for srmjeee",
+  "steps to fill the application form",
+  "how to register for srmjeee",
+  "what to upload in the application",
+  "can i apply for multiple phases",
+  "payment pending after paying application fee",
+  "what payment modes are accepted for the application"
+ ],
+ "jeee-slot-admit": [
+  "how to book srmjeee slot",
+  "can i change my slot after booking",
+  "how to download admit card",
+  "what id is needed on exam day",
+  "when does slot booking open",
+  "is there a mock test"
+ ],
+ "jeee-counselling": [
+  "how does srmjeee counselling work",
+  "how much to pay after counselling",
+  "what is the provisional allotment letter",
+  "what happens if i do not pay the counselling fee",
+  "registration fee and counselling fee amount",
+  "are counselling fees refundable"
+ ],
+ "jeee-scholarship": [
+  "what scholarships does srm give for srmjeee",
+  "fee waiver based on rank",
+  "direct admission for state toppers",
+  "scholarship for iit jee rankers",
+  "how much waiver can i get",
+  "sports persons scholarship",
+  "free education",
+  "study for free",
+  "full tuition waiver",
+  "100 percent scholarship",
+  "get fee concession for good marks",
+  "free seat for toppers"
+ ],
+ "jeee-misc": [
+  "is there negative marking",
+  "can i appear in all phases",
+  "what documents are required at application",
+  "when do classes start",
+  "do i need computer knowledge for the exam",
+  "system requirements for the online exam",
+  "can i correct mistakes in my application",
+  "when are results declared"
+ ],
+ "adm-contacts": [
+  "admission helpline number",
+  "who to call for engineering admission queries",
+  "contact number for management and law admissions",
+  "phone number of admissions office",
+  "admission enquiry contact"
+ ],
+ "adm-pg": [
+  "which exam for mtech admission",
+  "how to get admission for barch",
+  "entrance for architecture at srm",
+  "eligibility for mtech",
+  "is there an entrance for bdes",
+  "genetic counselling entrance exam"
+ ],
+ "hostel-capacity": [
+  "how many girls hostels are there",
+  "capacity of boys hostels",
+  "what food is available in hostel mess",
+  "are there north and south indian menus",
+  "is there an international hostel",
+  "number of hostel blocks",
+  "girls hostel capacity",
+  "how many girls can stay in hostel",
+  "how many students can the hostel hold",
+  "how many hostel blocks for boys",
+  "total hostel capacity"
+ ],
+ "hostel-apply": [
+  "how do i apply for hostel",
+  "how to book hostel room online",
+  "hostel booking portal",
+  "when can first year students book a hostel",
+  "can i stay in hostel without admission",
+  "where to book hostel"
+ ],
+ "hostel-eligibility": [
+  "who is eligible for hostel",
+  "can part time students stay in hostel",
+  "who cannot get a hostel room",
+  "is hostel available for research scholars"
+ ],
+ "hostel-contact": [
+  "hostel helpdesk email",
+  "hostel office phone number",
+  "who is the director of hostels",
+  "contact warden",
+  "hostel complaint contact"
+ ],
+ "placements-tiers": [
+  "which companies pay above 20 lakhs",
+  "what are marquee companies",
+  "dream companies list",
+  "super dream companies",
+  "salary packages offered by recruiters"
+ ],
+ "placements-stats": [
+  "what is the highest package at srm",
+  "how many offers did srm students get",
+  "placement statistics",
+  "how many companies visited campus",
+  "microsoft package at srm"
+ ],
+ "cal-sh-odd": [
+  "when do odd semester classes start",
+  "when are cycle tests for odd semester",
+  "when is the model exam in october",
+  "odd semester academic calendar 2026",
+  "when do first year classes begin",
+  "university exam dates november"
+ ],
+ "cal-sh-even": [
+  "when does the even semester begin",
+  "even semester academic calendar",
+  "when are cycle tests in january",
+  "when do end semester exams start in april",
+  "last working day of even semester"
+ ],
+ "cal-cet": [
+  "academic schedule for engineering students",
+  "where can i find the cet academic calendar",
+  "engineering semester dates 2026-27"
+ ],
+ "cal-structure": [
+  "how is a semester structured",
+  "what is a day order",
+  "how many cycle tests are there",
+  "do saturdays have classes",
+  "what are internal assessments"
+ ],
+ "exam-rules": [
+  "what is the attendance requirement",
+  "what happens if my attendance is low",
+  "can i be detained from exams",
+  "do i need a hall ticket",
+  "exam registration rules",
+  "what if i lose my hall ticket",
+  "minimum attendance for exams",
+  "attendance shortage detention",
+  "what if attendance is low"
+ ],
+ "exam-revaluation": [
+  "how to apply for revaluation",
+  "can i get my answer script rechecked",
+  "revaluation deadline",
+  "is revaluation allowed for practicals",
+  "what if i miss an exam for illness",
+  "makeup exam rules"
+ ],
+ "exam-malpractice": [
+  "what is the penalty for cheating in exams",
+  "what happens if i am caught copying",
+  "can i take my phone in the exam hall",
+  "exam malpractice punishment"
+ ],
+ "lib-hours": [
+  "library timings",
+  "when does the library open",
+  "until what time is the central library open",
+  "is the library open on sunday",
+  "law library timings",
+  "library open 24 hours"
+ ],
+ "lib-borrow": [
+  "how many books can i borrow",
+  "how long can i keep a library book",
+  "can i renew books online",
+  "can i borrow a laptop from the library",
+  "library membership rules for students"
+ ],
+ "lib-fines": [
+  "library fine for late return",
+  "what is the overdue charge",
+  "what if i lose a library book",
+  "late fee for borrowed laptop",
+  "library rules for bags"
+ ],
+ "transport-info": [
+  "how to get a bus pass",
+  "does srm have buses from chennai",
+  "what is the bus fee",
+  "how to book college bus online",
+  "duplicate bus pass cost",
+  "what do i need for bus facility"
+ ],
+ "transport-timings": [
+  "college bus timings",
+  "when does the morning bus reach campus",
+  "what time does the bus leave in the evening",
+  "transport office phone number",
+  "bus timings for science and humanities students"
+ ],
+ "clubs-central": [
+  "what clubs are there at srm",
+  "list of student clubs",
+  "music dance and drama clubs",
+  "is there a gaming club",
+  "how to join a club",
+  "women empowerment club"
+ ],
+ "clubs-ctech": [
+  "technical clubs for cse",
+  "google developer group at srm",
+  "coding clubs in computing technologies",
+  "is there a quantum computing club",
+  "foss club srm"
+ ],
+ "clubs-cintel-nwc": [
+  "ai clubs at srm",
+  "tedx srmist",
+  "srm hackathon organisers",
+  "student associations in cintel",
+  "ideathon at srm"
+ ],
+ "antiragging": [
+  "anti ragging helpline number",
+  "how to report ragging",
+  "what is the punishment for ragging",
+  "national anti ragging helpline",
+  "who is the anti ragging committee chairman"
+ ],
+ "scholar-merit": [
+  "founders scholarship criteria",
+  "scholarship for top 100 rank",
+  "srm merit scholarship rank 101 to 500",
+  "cgpa needed to keep scholarship",
+  "scholarship renewal conditions",
+  "free education for toppers",
+  "full scholarship for good rank",
+  "scholarship for rank holders"
+ ],
+ "scholar-other": [
+  "scholarship for children of defence personnel",
+  "employee ward scholarship",
+  "need based scholarship income limit",
+  "scholarship for differently abled students",
+  "alumni scholarship",
+  "arts and culture scholarship",
+  "socio economic scholarship"
+ ],
+ "scholar-faculties": [
+  "scholarship for mba",
+  "scholarship for medicine students",
+  "law school scholarship",
+  "scholarship percentile for science and humanities"
+ ],
+ "adm-policy-fees": [
+  "application fee for non engineering programmes",
+  "what is the application fee for law or management",
+  "is cuet accepted at srm",
+  "is clat accepted for law at srm",
+  "entrance exams used by srm"
+ ],
+ "adm-policy-refund": [
+  "how to withdraw my admission",
+  "refund rules after cancelling admission",
+  "last date for withdrawal",
+  "how long does the refund take",
+  "can i change my course after admission",
+  "how are refunds paid"
+ ],
+ "adm-policy-docs": [
+  "documents required for admission",
+  "what certificates are needed for enrolment",
+  "does srm appoint agents for admission",
+  "is there a fake srm website",
+  "official admissions email",
+  "lateral entry at srm"
+ ],
+ "adm-mba-law": [
+  "how to get admission for mba",
+  "eligibility for mba at srm",
+  "which entrance for law at srm",
+  "can cat score be used for srm mba",
+  "five year integrated law admission"
+ ],
+ "adm-health": [
+  "which health science courses does srm offer",
+  "how to get mbbs at srm",
+  "bpt or pharmacy admission",
+  "nursing admission at srm",
+  "pharm d admission",
+  "mph or mha programmes"
+ ],
+ "adm-international": [
+  "admission for foreign students",
+  "fee waiver for nri students",
+  "scholarship for international students",
+  "sat score fee waiver",
+  "how can an oci card holder apply"
+ ],
+ "ir-abroad": [
+  "semester abroad program",
+  "can i study abroad from srm",
+  "international exchange programme",
+  "dual degree with foreign university",
+  "international relations office contact"
+ ],
+ "colleges": [
+  "which colleges are there in srm",
+  "does srm have a law college",
+  "does srm have agriculture",
+  "distance and online education at srm",
+  "what faculties does srm ktr have"
+ ],
+ "portals-links": [
+  "student portal link",
+  "where to find the academic calendar",
+  "examination timetable link",
+  "program finder website",
+  "alumni portal"
+ ],
+ "reach-ktr": [
+  "how to reach srm kattankulathur",
+  "distance from chennai airport to srm",
+  "which railway station is nearest to srm",
+  "address of srm kattankulathur",
+  "how far is srm from koyambedu"
+ ],
+ "reach-visit": [
+  "visiting hours of srm",
+  "can visitors come to campus",
+  "hotels near srm",
+  "campus tour",
+  "phone number for visitors"
+ ],
+ "sports-facilities": [
+  "is there a swimming pool at srm",
+  "football and hockey grounds at srm",
+  "does srm have tennis courts",
+  "indoor stadium at srm",
+  "gym facilities in hostel",
+  "aquatic complex",
+  "swimming",
+  "swim",
+  "lap pool",
+  "sports complex at srm",
+  "which sports can i play",
+  "cricket ground",
+  "badminton court"
+ ],
+ "sports-quota": [
+  "sports quota admission",
+  "how to join srm sports team",
+  "scholarship for sportspersons",
+  "does srm give coaching for athletes"
+ ],
+ "hostel-rules-1": [
+  "hostel rules and regulations",
+  "can i keep food in my room",
+  "are smoking and alcohol allowed",
+  "how is hostel room allotted",
+  "do i need an id card in the hostel"
+ ],
+ "hostel-rules-2": [
+  "can parents stay in my hostel",
+  "hostel fee refund if i withdraw",
+  "what is the fine for hostel rule violation",
+  "hostel complaint register",
+  "can relatives stay in hostel",
+  "summer break hostel rules",
+  "can my parents stay in hostel",
+  "visitor stay in hostel",
+  "guest room for parents"
+ ],
+ "campus-life": [
+  "is there wifi on campus",
+  "are there food courts and atms on campus",
+  "does srm have ncc and nss",
+  "is there a health centre on campus",
+  "counselling services for students",
+  "robotics club at srm",
+  "festivals celebrated at srm"
+ ]
 }
