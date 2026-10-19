@@ -121,7 +121,7 @@
         if (!forcedText && pendingAction) {
             action = pendingAction.type;
             pendingAction = null;
-            messageInput.placeholder = "Ask about faculty, fees, PYQs, hostels, portals, placements...";
+            messageInput.placeholder = "Ask about HODs, fees, PYQs, hostels, portals, placements...";
             messageInput.classList.remove("awaiting-input");
         }
 
@@ -317,7 +317,7 @@
 
         // Reset pending action
         pendingAction = null;
-        messageInput.placeholder = "Ask about faculty, fees, PYQs, hostels, portals, placements...";
+        messageInput.placeholder = "Ask about HODs, fees, PYQs, hostels, portals, placements...";
         messageInput.classList.remove("awaiting-input");
 
         chatHistory = []; // Reset context
