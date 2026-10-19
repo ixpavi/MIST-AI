@@ -60,8 +60,14 @@ def _blocked(key):
     return _cooldown.get(key, 0) > time.time()
 
 
-def _trip(key, code):
-    secs = COOLDOWN.get(code) or (COOLDOWN["5xx"] if isinstance(code, int) and code >= 500 else COOLDOWN["other"])
+def _trip(key, code, retry_after=None):
+    if code == 429:
+        try:        # providers say how long to wait; per-minute limits reset in seconds, so do not freeze for 10 minutes
+            secs = min(max(int(float(retry_after)), 5), 600) if retry_after else 20
+        except (TypeError, ValueError):
+            secs = 20
+    else:
+        secs = COOLDOWN.get(code) or (COOLDOWN["5xx"] if isinstance(code, int) and code >= 500 else COOLDOWN["other"])
     _cooldown[key] = time.time() + secs
     log.warning("%s paused for %ss (%s)", key, secs, code)
 
@@ -94,7 +100,7 @@ def chat(name, system, prompt, max_tokens=900, temperature=0.3, fast=False, time
             if text:
                 return text, key
         except urllib.error.HTTPError as e:
-            _trip(key, e.code)
+            _trip(key, e.code, e.headers.get("retry-after") if e.headers else None)
         except Exception as e:                      # timeouts, DNS, bad JSON ...
             _trip(key, "other")
             log.warning("%s failed: %s", key, str(e)[:100])

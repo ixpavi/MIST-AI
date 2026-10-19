@@ -33,6 +33,7 @@ log = logging.getLogger("mist.engine")
 DATA = Path(__file__).with_name("data")
 KB_FILES = ["srm_knowledge.json", "kb_official.json", "kb_campus.json", "kb_campus2.json"]
 MIN_SEMANTIC = 0.62       # local semantic score (dense + lexical bonus) needed to call a chunk relevant
+LOCAL_CONFIDENT = 0.50    # keyword/question-bank match this strong is shown without a hedge when the model is down
 EXTRACT_MIN = 0.70        # at or above this, answer straight from the matched fact (no language model)
 MIN_VECTOR_SCORE = 0.60
 MIN_KEYWORD_SCORE = 0.28
@@ -157,6 +158,14 @@ def _tokens(text):
     return out
 
 
+_PLURAL = re.compile(r"\b([a-z]{2,}[^sui\W])s\b")
+
+
+def _prep(text):
+    """Lowercase and drop a plural 's' ('fees' -> 'fee', 'hostels' -> 'hostel') so both forms match."""
+    return _PLURAL.sub(r"\1", text.lower())
+
+
 _tfidf = {"key": None, "word": None, "char": None, "wmat": None, "cmat": None}
 
 
@@ -166,7 +175,7 @@ def _fit_tfidf(chunks):
     if _tfidf["key"] == key:
         return
     docs = [c["topic"] + ". " + c["text"] for c in chunks]
-    word = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, stop_words="english", token_pattern=r"[a-z0-9]{2,}")
+    word = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, stop_words="english", token_pattern=r"[a-z0-9]{2,}", preprocessor=_prep)
     char = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), sublinear_tf=True)
     _tfidf.update(key=key, word=word, char=char, wmat=word.fit_transform(docs), cmat=char.fit_transform(docs))
 
@@ -255,7 +264,7 @@ def _bank_tfidf_scores(query, chunks):
             if not pairs:
                 return np.zeros(len(chunks), dtype="float32")
             qs = [q for q, _ in pairs]
-            word = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, stop_words="english", token_pattern=r"[a-z0-9]{2,}")
+            word = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, stop_words="english", token_pattern=r"[a-z0-9]{2,}", preprocessor=_prep)
             char = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), sublinear_tf=True)
             _btf.update(key=key, word=word, char=char, wmat=word.fit_transform(qs), cmat=char.fit_transform(qs),
                         idx=np.array([i for _, i in pairs]))
@@ -577,7 +586,9 @@ def answer(query, history=None, name="", today=None, action=None):
         else:
             result.update(reply=text, model=model, route="kb+llm")
     else:
-        if top:
+        if top and score >= LOCAL_CONFIDENT:
+            result["reply"] = compose_extractive(query, top, qv_query)
+        elif top:
             result["reply"] = "I'm not fully sure, but this looks like the closest information I have:\n\n" + \
                 compose_extractive(query, top, qv_query)
         else:
