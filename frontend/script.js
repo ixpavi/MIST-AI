@@ -139,6 +139,20 @@
                 body: JSON.stringify({ message: text, history: chatHistory, session_id: sessionId, action: action })
             });
 
+            if (response.status === 403) {
+                // blocked by the hosting firewall (e.g. raw SQL/script text) before it reaches the app
+                hideTyping();
+                appendMessage("bot", "That message looks like code or a technical command, so it was blocked by the security filter. Please ask a normal question about SRM - admissions, hostels, fees, PYQs, placements, library or HODs.");
+                setStatus("Message blocked", "ready");
+                return;
+            }
+            if (response.status === 400 || response.status === 429) {
+                var info = await response.json().catch(function () { return {}; });
+                hideTyping();
+                appendMessage("bot", (info && info.reply) || "Please check your message and try again.");
+                setStatus(response.status === 429 ? "Slow down a little" : "Check your message", "ready");
+                return;
+            }
             if (!response.ok) {
                 throw new Error("Server returned " + response.status);
             }
