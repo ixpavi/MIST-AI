@@ -11,6 +11,7 @@ from flask_cors import CORS
 import config
 import database
 import engine
+import semantic
 import intents
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -120,7 +121,7 @@ def feedback():
 def health():
     _, kb_source = engine.get_kb()
     return jsonify({
-        "status": "ok",
+        "semantic_model": semantic.status()["status"], "status": "ok",
         "db_configured": database.is_configured(),
         "db_ok": database.db_ok() if database.is_configured() else False,
         "kb_source": kb_source,

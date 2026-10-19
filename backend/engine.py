@@ -24,11 +24,15 @@ import intents
 import skills
 import tools
 import safety
+import numpy as np
+import semantic
 import understand
 
 log = logging.getLogger("mist.engine")
 DATA = Path(__file__).with_name("data")
 KB_FILES = ["srm_knowledge.json", "kb_official.json", "kb_campus.json", "kb_campus2.json"]
+MIN_SEMANTIC = 0.62       # local semantic score (dense + lexical bonus) needed to call a chunk relevant
+EXTRACT_MIN = 0.70        # at or above this, answer straight from the matched fact (no language model)
 MIN_VECTOR_SCORE = 0.60
 MIN_KEYWORD_SCORE = 0.12
 TOPIC_BOOST = 0.05
@@ -37,6 +41,7 @@ STOP = set("a an the is are was were of to in on for and or do does did i you me
            "which who can will be at by with about tell please srm srmist".split())
 
 _client = None
+semantic.start_warmup()   # background download/load of the local model; TF-IDF is used until it is ready
 _cooldown = {}          # name -> unix time until which calls to it are skipped (quota / overload protection)
 COOLDOWN_SECONDS = {"429": 600, "503": 60, "other": 30}
 _answer_cache = {}
@@ -178,30 +183,118 @@ def _keyword_scores(query, chunks):
         return [sum(1 for t in q if t in _tokens(c["text"])) / (len(q) or 1) for c in chunks]
 
 
-def retrieve(query, chunks, intent=None, k=4):
-    """Hybrid retrieval (embeddings + keywords + intent-topic boost). Returns (chunks, best score, method)."""
-    qv = None
-    if any(c.get("embedding") for c in chunks):
-        qv = _embed_cache.get(query)
-        if qv is None:
-            qv = embed([query], task="RETRIEVAL_QUERY")
-            if qv:
-                if len(_embed_cache) > 500:
-                    _embed_cache.clear()
-                _embed_cache[query] = qv
-    kw = _keyword_scores(query, chunks)
-    if qv:
-        q = qv[0]
-        vec = [sum(a * b for a, b in zip(q, c["embedding"])) if c.get("embedding") else 0.0 for c in chunks]
-        scores = [0.85 * v + 0.15 * w for v, w in zip(vec, kw)]
-        method, floor = "hybrid", MIN_VECTOR_SCORE - 0.03
+_lcache = {"key": None, "mat": None}
+
+
+def _local_matrix(chunks):
+    key = (len(chunks), sum(len(c["text"]) for c in chunks))
+    if _lcache["key"] == key and _lcache["mat"] is not None:
+        return _lcache["mat"]
+    mat = semantic.encode_docs([c["topic"] + ". " + c["text"] for c in chunks])
+    if mat is not None:
+        _lcache.update(key=key, mat=mat)
+    return mat
+
+
+_bcache = {"key": None, "mat": None, "idx": None}
+BANK_OFFSET = 0.12      # question-to-question similarity is naturally higher than question-to-passage
+
+
+def _bank_questions(chunks):
+    """(question, chunk index) pairs: curated paraphrases + auto questions for departments and FAQ entries."""
+    try:
+        bank = json.loads((DATA / "question_bank.json").read_text(encoding="utf-8"))
+    except Exception:
+        bank = {}
+    pairs = []
+    for i, c in enumerate(chunks):
+        qs = list(bank.get(c["id"], []))
+        m = re.match(r"Q:\s*(.+?)\nA:", c["text"])
+        if m:
+            qs.append(m.group(1))
+        if c["id"].startswith("dept-"):
+            m2 = re.match(r"(Department of [^(]+)\(([A-Z]+)\)", c["text"])
+            if m2:
+                name, short = m2.group(1).strip(), m2.group(2)
+                qs += [f"who is the hod of {short}", f"who is the head of {name}", f"{short} department phone number",
+                       f"{short} hod email", f"where is the {name}", f"contact details of {short} department"]
+        pairs += [(q, i) for q in qs]
+    return pairs
+
+
+def _bank_matrix(chunks):
+    key = (len(chunks), sum(len(c["text"]) for c in chunks))
+    if _bcache["key"] == key and _bcache["mat"] is not None:
+        return _bcache["mat"], _bcache["idx"]
+    pairs = _bank_questions(chunks)
+    if not pairs:
+        return None, None
+    mat = semantic.encode_plain([q for q, _ in pairs])
+    if mat is None:
+        return None, None
+    idx = np.array([i for _, i in pairs])
+    _bcache.update(key=key, mat=mat, idx=idx)
+    return mat, idx
+
+
+def retrieve(query, chunks, intent=None, k=4, qvec=None, qplain=None):
+    """Retrieval by meaning. Order of preference:
+       1) local semantic model (+ small TF-IDF bonus)   2) Gemini embeddings (+TF-IDF)   3) TF-IDF only.
+    Returns (relevant chunks, best score, method)."""
+    kw = np.array(_keyword_scores(query, chunks), dtype="float32")
+    mat = _local_matrix(chunks) if semantic.ready() else None
+    if mat is not None:
+        qv = qvec if qvec is not None else semantic.encode_queries([query])[0]
+        scores = (mat @ qv) + 0.2 * kw
+        bmat, bidx = _bank_matrix(chunks)
+        if bmat is not None:
+            qp = qplain if qplain is not None else semantic.encode_plain([query])[0]
+            sims = bmat @ qp
+            bscore = np.full(len(chunks), -1.0, dtype="float32")
+            np.maximum.at(bscore, bidx, sims)
+            scores = np.maximum(scores, bscore - BANK_OFFSET)
+        method, floor = "semantic", MIN_SEMANTIC
     else:
-        scores, method, floor = kw, "keyword", MIN_KEYWORD_SCORE
+        qg = None
+        if any(c.get("embedding") for c in chunks):
+            qg = _embed_cache.get(query)
+            if qg is None:
+                qg = embed([query], task="RETRIEVAL_QUERY")
+                if qg:
+                    if len(_embed_cache) > 500:
+                        _embed_cache.clear()
+                    _embed_cache[query] = qg
+        if qg:
+            q = qg[0]
+            vec = np.array([sum(a * b for a, b in zip(q, c["embedding"])) if c.get("embedding") else 0.0 for c in chunks])
+            scores, method, floor = 0.85 * vec + 0.15 * kw, "hybrid", MIN_VECTOR_SCORE - 0.03
+        else:
+            scores, method, floor = kw, "keyword", MIN_KEYWORD_SCORE
     prefer = intents.TOPICS.get(intent, set())
-    order = sorted(range(len(chunks)),
-                   key=lambda i: scores[i] + (TOPIC_BOOST if chunks[i]["topic"] in prefer else 0), reverse=True)[:k]
+    boosted = [scores[i] + (TOPIC_BOOST if chunks[i]["topic"] in prefer else 0.0) for i in range(len(chunks))]
+    order = sorted(range(len(chunks)), key=lambda i: boosted[i], reverse=True)[:k]
     top = [chunks[i] for i in order if scores[i] >= floor]
     return top, float(scores[order[0]]) if order else 0.0, method
+
+
+_SENT = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(])")
+
+
+def compose_extractive(query, top, qvec=None):
+    """Answer directly from the matched fact: keep the sentences that best match the question. No language model."""
+    best = top[0]
+    text = best["text"].strip()
+    sents = [x.strip() for x in _SENT.split(text) if x.strip()]
+    if len(sents) > 3 and semantic.ready():
+        sm = semantic.encode_docs(sents)
+        qv = qvec if qvec is not None else semantic.encode_queries([query])[0]
+        sc = sm @ qv
+        keep = [i for i in np.argsort(-sc)[:3] if sc[i] >= sc.max() - 0.08]
+        text = " ".join(sents[i] for i in sorted(keep))
+    src = best.get("source")
+    if src and src not in text:
+        text += "\n\nSource: " + src
+    return text
 
 
 # ---------------------------------------------------------------- answering
@@ -316,7 +409,11 @@ def answer(query, history=None, name="", today=None, action=None):
         [d["name"] + " " + " ".join(d["aliases"]) for d in skills.departments()]
         + [q for qs in intents.TRAIN.values() for q in qs])
     query, notes = understand.prepare(raw_query, history, vocab, _rewrite_llm)
-    intent, conf = intents.predict(query)
+    qv_plain = qv_query = None
+    if semantic.ready():
+        qv_plain = semantic.encode_plain([query])[0]
+        qv_query = semantic.encode_queries([query])[0]
+    intent, conf = intents.predict(query, qv_plain)
     ql = query.lower()
 
     # 0) explicit UI action (two-step faculty flow): no intent guessing needed
@@ -352,21 +449,27 @@ def answer(query, history=None, name="", today=None, action=None):
 
     # 4) retrieval over the knowledge base
     chunks, _ = get_kb()
-    top, score, method = retrieve(query, chunks, intent)
+    top, score, method = retrieve(query, chunks, intent, qvec=qv_query, qplain=qv_plain)
     if not top:
-        # skills as a safety net for unclassified questions (old DB-search behaviour)
-        for fn in (skills.university_info, skills.portal_features, skills.locations):
-            try:
-                text = fn(query)
-            except Exception:
-                text = None
-            if text:
-                return _result(text, "skill", intent, conf, skill=fn.__name__)
+        # database skills as a safety net, but only for portal/location style questions: for anything else a weak
+        # keyword match is worse than an honest "I'm not sure" (it used to answer 'how many seats in MBA' with a
+        # student-life blurb)
+        if intent in ("portal", "portal_feature", "location"):
+            for fn in (skills.portal_features, skills.locations):
+                try:
+                    text = fn(query)
+                except Exception:
+                    text = None
+                if text:
+                    return _result(text, "skill", intent, conf, skill=fn.__name__)
         if intent == "offtopic" and conf >= OFFSCOPE_CONF:
             return _result(SCOPE_HELP, "decline", intent, conf, score=score)
 
     result = _result("", "kb", intent, conf, score=score, grounded=bool(top), understood=query,
                      sources=sorted({c["source"] for c in top if c.get("source")}))
+    if top and method == "semantic" and score >= EXTRACT_MIN:
+        result.update(reply=compose_extractive(query, top, qv_query), route="kb", note="extractive")
+        return result
     context = "\n\n".join(f"[{c['topic']}] {c['text']} (source: {c.get('source') or 'n/a'})" for c in top) \
         or "(no relevant context found)"
     convo = "\n".join(f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('text', '')}"
@@ -385,10 +488,14 @@ def answer(query, history=None, name="", today=None, action=None):
         bad = ungrounded_numbers(text, context, raw_query + " " + query)
         if bad:
             log.warning("dropping answer with ungrounded numbers %s", bad[:3])
-            result["reply"] = kb_text_answer(top)
+            result["reply"] = compose_extractive(query, top, qv_query) if top else kb_text_answer(top)
             result["note"] = "ungrounded_numbers"
         else:
             result.update(reply=text, model=model, route="kb+llm")
     else:
-        result["reply"] = kb_text_answer(top)
+        if top:
+            result["reply"] = "I'm not fully sure, but this looks like the closest information I have:\n\n" + \
+                compose_extractive(query, top, qv_query)
+        else:
+            result["reply"] = kb_text_answer(top)
     return result

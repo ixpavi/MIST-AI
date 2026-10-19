@@ -1,0 +1,4 @@
+# Optional: local semantic search (paraphrase understanding without any API).
+# Needs roughly 1.3 GB of RAM, so it is NOT installed on Render's free tier.
+# Install with: pip install -r requirements-semantic.txt   and run with LOCAL_EMBEDDINGS=1
+fastembed

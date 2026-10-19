@@ -133,14 +133,34 @@ def load():
     return _model
 
 
-def predict(text):
-    """Returns (intent, confidence) or (None, 0.0) if no trained model is available."""
+EMB_MODEL_FILE = Path(__file__).with_name("data") / "intent_model_emb.joblib"
+_emb_model = None
+
+
+def load_emb():
+    """Logistic regression on local sentence embeddings (understands paraphrases). None if not trained."""
+    global _emb_model
+    if _emb_model is None and EMB_MODEL_FILE.exists():
+        try:
+            _emb_model = joblib.load(EMB_MODEL_FILE)
+        except Exception as e:
+            log.warning("embedding intent model not loadable: %s", str(e)[:80])
+    return _emb_model
+
+
+def predict(text, vec=None):
+    """Returns (intent, confidence) or (None, 0.0). With a sentence embedding `vec`, the TF-IDF model and the
+    embedding model vote together, so wording that never appeared in training still maps to the right topic."""
     m = load()
     if m is None:
         return None, 0.0
     probs = m.predict_proba([text])[0]
+    classes = list(m.classes_)
+    em = load_emb() if vec is not None else None
+    if em is not None and list(em.classes_) == classes:
+        probs = 0.5 * probs + 0.5 * em.predict_proba([vec])[0]
     i = int(probs.argmax())
-    return m.classes_[i], float(probs[i])
+    return classes[i], float(probs[i])
 
 
 # ---- augmentation: short keyword queries + polite wrappers (training only) ----------------------

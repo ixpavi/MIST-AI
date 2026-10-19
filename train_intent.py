@@ -9,6 +9,8 @@ from sklearn.metrics import classification_report
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
 
 import intents  # noqa: E402
+import semantic  # noqa: E402
+from sklearn.linear_model import LogisticRegression  # noqa: E402
 
 
 def main():
@@ -26,6 +28,25 @@ def main():
     for q, t, p in zip(tx, ty, pred):
         if t != p:
             print(f"  miss: {q!r}  expected={t} got={p}")
+
+    if semantic.load_blocking():
+        print("\nTraining embedding intent model (local bge-small) ...")
+        ex = semantic.encode_plain(X)
+        et = semantic.encode_plain(list(tx))
+        emb = LogisticRegression(C=20, max_iter=3000).fit(ex, y)
+        pe = emb.predict(et)
+        print(f"  embedding model alone: {np.mean(np.array(pe) == np.array(ty)):.1%}")
+        ens = 0.5 * pipe.predict_proba(list(tx)) + 0.5 * emb.predict_proba(et)
+        pens = pipe.classes_[ens.argmax(axis=1)]
+        print(f"  ensemble (TF-IDF + embeddings): {np.mean(np.array(pens) == np.array(ty)):.1%}")
+        for q, tt, pp in zip(tx, ty, pens):
+            if tt != pp:
+                print(f"    ensemble miss: {q!r} expected={tt} got={pp}")
+        emb.fit(np.vstack([ex, et]), y + list(ty))
+        joblib.dump(emb, intents.EMB_MODEL_FILE)
+        print(f"  saved -> {intents.EMB_MODEL_FILE}")
+    else:
+        print("\n(local embedding model unavailable: only the TF-IDF intent model was trained)")
 
     pipe.fit(X + list(tx), y + list(ty))  # final model also learns from the test questions
     joblib.dump(pipe, intents.MODEL_FILE)
