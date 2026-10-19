@@ -170,8 +170,9 @@ def log_chat(session_id, question, answer, res):
 
 def save_feedback(chat_id, rating):
     try:
-        execute_query("UPDATE chat_logs SET rating=%s WHERE chat_id=%s", (rating, chat_id))
-        return True
+        row = execute_query("UPDATE chat_logs SET rating=%s WHERE chat_id=%s RETURNING chat_id",
+                            (rating, chat_id), returning=True)
+        return row is not None
     except Exception as e:
         log.warning("save_feedback failed: %s", str(e)[:120])
         return False

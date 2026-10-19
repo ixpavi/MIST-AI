@@ -235,7 +235,8 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ chat_id: chatId, rating: rating })
             });
-            if (!res.ok) throw new Error("feedback failed");
+            var result = await res.json();
+            if (!res.ok || !result.ok) throw new Error("feedback failed");
             bar.querySelectorAll(".fb-btn").forEach(function (b) { b.classList.remove("chosen"); });
             btn.classList.add("chosen");
             showToast("Thanks for the feedback!");
