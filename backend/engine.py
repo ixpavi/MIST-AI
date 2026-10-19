@@ -428,6 +428,13 @@ def ungrounded_numbers(answer_text, context_text, question_text):
     return bad
 
 
+_MENTIONS_SRM = re.compile(r"\bsrm(ist)?\b|\bour (college|university|campus)\b|\bthis (college|university|campus)\b", re.I)
+
+
+def _mentions_srm(text):
+    return bool(_MENTIONS_SRM.search(text or ""))
+
+
 def _rewrite_llm(prompt):
     """Short model call used only for follow-up rewriting (returns None if unavailable)."""
     text, _ = _generate(prompt, None, 0.0, 400, fast=True)
@@ -502,10 +509,10 @@ def answer(query, history=None, name="", today=None, action=None):
                     text = None
                 if text:
                     return _result(text, "skill", intent, conf, skill=fn.__name__)
-        if intent == "offtopic" and conf >= OFFSCOPE_CONF:
+        if intent == "offtopic" and conf >= OFFSCOPE_CONF and not _mentions_srm(raw_query):
             return _result(SCOPE_HELP, "decline", intent, conf, score=score)
 
-    if intent == "offtopic" and conf >= 0.7 and score < 0.6:
+    if intent == "offtopic" and conf >= 0.7 and score < 0.6 and not _mentions_srm(raw_query):
         # confidently off-topic and only a weak accidental match: decline instead of showing unrelated SRM text
         return _result(SCOPE_HELP, "decline", intent, conf, score=score)
 
