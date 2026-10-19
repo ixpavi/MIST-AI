@@ -435,6 +435,31 @@ def _mentions_srm(text):
     return bool(_MENTIONS_SRM.search(text or ""))
 
 
+_DOMAIN_WORDS = None
+
+
+def _domain_words():
+    """Topic words students use ('pyq', 'hostel', 'library', 'scholarship', ...), taken from the intent keywords."""
+    global _DOMAIN_WORDS
+    if _DOMAIN_WORDS is None:
+        words = {"pyq", "hod", "bus", "mba", "fees", "fee"}
+        for phrases in intents.KEYWORDS.values():
+            for ph in phrases:
+                for w in re.findall(r"[a-z]+", ph.lower()):
+                    if len(w) >= 4 and w not in understand.KEEP and w not in ("where", "what", "when", "tell"):
+                        words.add(w)
+        _DOMAIN_WORDS = words
+    return _DOMAIN_WORDS
+
+
+def _names_own_subject(text):
+    """A message that names a department or a clear topic word is self-contained, not a follow-up."""
+    if skills._match_department(text):
+        return True
+    toks = re.findall(r"[a-z]+", text.lower())
+    return any(t in _domain_words() or (t.endswith("s") and t[:-1] in _domain_words()) for t in toks)
+
+
 def _rewrite_llm(prompt):
     """Short model call used only for follow-up rewriting (returns None if unavailable)."""
     text, _ = _generate(prompt, None, 0.0, 400, fast=True)
@@ -456,7 +481,7 @@ def answer(query, history=None, name="", today=None, action=None):
         [d["name"] + " " + " ".join(d["aliases"]) for d in skills.departments()]
         + [q for qs in intents.TRAIN.values() for q in qs])
     query, notes = understand.prepare(raw_query, history, vocab, _rewrite_llm,
-                                    names_own_subject=lambda t: bool(skills._match_department(t)))
+                                    names_own_subject=_names_own_subject)
     qv_plain = qv_query = None
     if semantic.ready():
         qv_plain = semantic.encode_plain([query])[0]
