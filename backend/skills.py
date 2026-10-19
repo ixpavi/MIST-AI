@@ -24,30 +24,95 @@ def _like_patterns(text):
     return [f"%{k}%" for k in keywords(text)] or None
 
 
-# ---------------------------------------------------------------- faculty
-_FACULTY_STRIP = {
-    "who", "is", "tell", "me", "about", "details", "of", "the", "faculty", "professor", "prof", "teacher",
-    "lecturer", "staff", "hod", "head", "department", "dean", "sir", "maam", "madam", "ma'am", "give", "show",
-    "find", "search", "info", "information", "teaches", "teaching", "at", "srm", "srmist", "university", "ktr",
-    "kattankulathur", "campus", "please", "can", "you", "do", "know", "i", "want", "to", "what", "where",
-    "which", "how", "contact", "email", "phone", "number", "cabin", "office", "room", "a", "an", "and", "in",
-    "for", "from", "with", "on",
-}
+# ---------------------------------------------------------------- faculty & departments
+import json
+from pathlib import Path
+
 STAFF_FINDER = "https://www.srmist.edu.in/staff-finder/"
 FACULTY_LIST = "https://www.srmist.edu.in/faculty/"
+DEPT_LIST = "https://www.srmist.edu.in/departments/"
+_DEPTS = None
+
+ROLE_WORDS = re.compile(r"\b(hod|head of (the )?department|head of dept|heads?|dean|chairperson)\b", re.I)
+# words that are never part of a person's name
+_NOT_NAME = {
+    "who", "is", "are", "was", "tell", "me", "about", "details", "of", "the", "faculty", "professor", "prof",
+    "teacher", "lecturer", "staff", "hod", "head", "department", "dept", "dean", "sir", "maam", "madam",
+    "give", "show", "find", "search", "info", "information", "teaches", "teaching", "at", "srm", "srmist",
+    "university", "ktr", "kattankulathur", "campus", "please", "can", "you", "do", "know", "i", "want", "to",
+    "what", "where", "which", "how", "contact", "email", "phone", "number", "cabin", "office", "room", "a", "an",
+    "and", "in", "for", "from", "with", "on", "so", "ok", "okay", "hey", "hi", "hello", "then", "also", "now",
+    "well", "actually", "just", "my", "our", "his", "her", "this", "that", "there", "name", "mr", "mrs", "ms",
+    "dr", "s", "ma", "yes", "no", "thanks", "thank", "pls", "plz", "mist", "ai",
+}
+
+
+def departments():
+    global _DEPTS
+    if _DEPTS is None:
+        path = Path(__file__).with_name("data") / "departments.json"
+        _DEPTS = json.loads(path.read_text(encoding="utf-8"))
+    return _DEPTS
+
+
+def _match_department(text):
+    """Best department whose alias appears as whole words in the text (longest alias wins)."""
+    t = " " + re.sub(r"[^a-z0-9 ]+", " ", text.lower()) + " "
+    best, best_len = None, 0
+    for d in departments():
+        for alias in d["aliases"]:
+            if f" {alias} " in t and len(alias) > best_len:
+                best, best_len = d, len(alias)
+    return best
+
+
+def department_chunks():
+    """Knowledge-base entries so retrieval can also surface department/HOD facts."""
+    out = []
+    for i, d in enumerate(departments()):
+        bits = [f"{d['name']} ({d['short']}), Kattankulathur. Head of the Department: {d['hod']}."]
+        if d.get("email"):
+            bits.append(f"HOD email: {d['email']}.")
+        if d.get("phone"):
+            bits.append(f"Phone: {d['phone']}.")
+        bits.append(f"Location: {d['location']}. Official page: {d['url']}")
+        out.append({"id": f"dept-{i:02d}", "topic": "Departments", "campus": "Kattankulathur (KTR)",
+                    "text": " ".join(bits), "source": d["url"]})
+    return out
+
+
+def _department_answer(d):
+    lines = [f"{d['name']} (SRMIST Kattankulathur)", f"Head of the Department: {d['hod']}"]
+    if d.get("email"):
+        lines.append(f"HOD email: {d['email']}")
+    if d.get("phone"):
+        lines.append(f"Phone: {d['phone']}")
+    lines.append(f"Location: {d['location']}")
+    lines.append(f"Official page: {d['url']}")
+    lines.append("")
+    lines.append("(As listed on the department's page on srmist.edu.in. HODs change, so confirm there.)")
+    return "\n".join(lines)
 
 
 def faculty(text):
-    name = " ".join(t for t in re.findall(r"[a-z']+", text.lower()) if t not in _FACULTY_STRIP).title()
-    if not name:
-        return (f"You can search for any faculty member on the SRM Staff Finder:\n{STAFF_FINDER}\n\n"
-                f"Or browse the complete faculty listing:\n{FACULTY_LIST}")
-    slug = name.lower().replace(" ", "-")
-    direct = (f"{FACULTY_LIST}{slug}/" if slug.split("-")[0] in ("dr", "mr", "mrs", "ms")
-              else f"{FACULTY_LIST}dr-{slug}/\n   {FACULTY_LIST}{slug}/")
-    return (f"You can find the profile of {name} on the SRM website:\n\n"
-            f"1. Staff Finder (lists every matching faculty member):\n   {STAFF_FINDER}\n\n"
-            f"2. Possible direct profile link:\n   {direct}\n\n3. Full faculty directory:\n   {FACULTY_LIST}")
+    """Faculty / HOD questions. Never invents names or profile links."""
+    dept = _match_department(text)
+    low = text.lower()
+    if dept and (ROLE_WORDS.search(text) or "faculty" in low or "staff" in low):
+        return _department_answer(dept)
+    if ROLE_WORDS.search(text):
+        names = ", ".join(d["short"] for d in departments())
+        return ("I can tell you the HOD for these departments: " + names + ". Try 'HOD of CTECH' or "
+                "'who is the HOD of mechanical'.\n\nFor any other department, open the department list and "
+                "pick yours:\n" + DEPT_LIST + "\n\nOr search a person on Staff Finder:\n" + STAFF_FINDER)
+    tokens = [t for t in re.findall(r"[a-z']+", low) if t not in _NOT_NAME and len(t) > 1]
+    name = " ".join(tokens).title()
+    if 1 <= len(tokens) <= 4 and not dept:
+        return ("I don't store individual faculty profiles, so I can't confirm details for '" + name + "'. "
+                "Search the name on the official Staff Finder, which lists every matching faculty member:\n"
+                + STAFF_FINDER + "\n\nFull faculty directory:\n" + FACULTY_LIST)
+    return ("You can search any faculty member on the SRM Staff Finder:\n" + STAFF_FINDER + "\n\n"
+            "Or browse the complete faculty directory:\n" + FACULTY_LIST)
 
 
 # ---------------------------------------------------------------- tables

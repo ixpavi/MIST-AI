@@ -74,7 +74,7 @@ def load_local_kb():
     chunks = []
     for name in KB_FILES:
         chunks += json.loads((DATA / name).read_text(encoding="utf-8"))
-    return chunks + tools.program_chunks()
+    return chunks + tools.program_chunks() + skills.department_chunks()
 
 
 def get_kb(refresh=False):
