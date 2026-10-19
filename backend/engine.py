@@ -21,6 +21,7 @@ from pathlib import Path
 import config
 import database
 import intents
+import llm_providers
 import skills
 import tools
 import safety
@@ -74,6 +75,8 @@ def _trip(name, err):
 
 
 def embed(texts, task="RETRIEVAL_DOCUMENT"):
+    if str(config.get("GEMINI_EMBEDDINGS", "0")).lower() not in ("1", "true", "yes", "on"):
+        return None        # retrieval runs on TF-IDF + the question bank (+ optional local model), not on an API
     client = _gemini()
     if client is None or not texts or _blocked("embed"):
         return None
@@ -336,25 +339,45 @@ def _result(answer, route, intent, conf, **kw):
     return r
 
 
-def _llm(prompt):
+def _gemini_generate(prompt, system, temperature, max_tokens, models):
     client = _gemini()
     if client is None:
         return None, None
     from google.genai import types
-    cfg = types.GenerateContentConfig(system_instruction=SYSTEM, temperature=0.3, max_output_tokens=2048)
-    for model in config.CHAT_MODELS:
+    cfg = types.GenerateContentConfig(system_instruction=system, temperature=temperature, max_output_tokens=max_tokens)
+    for model in models:
         if _blocked(model):
             continue
         try:
             resp = client.models.generate_content(model=model, contents=prompt, config=cfg)
             text = (resp.text or "").strip()
             if text:
-                return text, model
+                return text, "gemini:" + model
         except Exception as e:
             _trip(model, e)
     return None, None
 
 
+def _generate(prompt, system, temperature, max_tokens, fast=False):
+    """Walk LLM_CHAIN (default groq, openrouter, cerebras, gemini). Returns (text, 'provider:model') or (None, None)."""
+    for name in llm_providers.chain():
+        if name == "gemini":
+            text, model = _gemini_generate(prompt, system, temperature, max_tokens,
+                                           config.CHAT_MODELS[:2] if fast else config.CHAT_MODELS)
+        else:
+            text, model = llm_providers.chat(name, system, prompt, max_tokens=max_tokens,
+                                             temperature=temperature, fast=fast)
+        if text:
+            return text, model
+    return None, None
+
+
+def _llm(prompt):
+    return _generate(prompt, SYSTEM, 0.3, 1200)
+
+
+def llm_status():
+    return llm_providers.configured()
 
 
 _NUM = re.compile(r"(?<![\w.])(\d[\d,]*\.?\d*)\s*(%|percent|per cent|lpa|lakh|crore)?", re.I)
@@ -376,22 +399,8 @@ def ungrounded_numbers(answer_text, context_text, question_text):
 
 def _rewrite_llm(prompt):
     """Short model call used only for follow-up rewriting (returns None if unavailable)."""
-    client = _gemini()
-    if client is None:
-        return None
-    from google.genai import types
-    cfg = types.GenerateContentConfig(temperature=0.0, max_output_tokens=512)
-    for model in config.CHAT_MODELS[:2]:
-        if _blocked(model):
-            continue
-        try:
-            resp = client.models.generate_content(model=model, contents=prompt, config=cfg)
-            text = (resp.text or "").strip()
-            if text:
-                return text
-        except Exception as e:
-            _trip(model, e)
-    return None
+    text, _ = _generate(prompt, None, 0.0, 400, fast=True)
+    return text
 
 
 def answer(query, history=None, name="", today=None, action=None):

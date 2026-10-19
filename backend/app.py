@@ -126,7 +126,8 @@ def health():
         "db_ok": database.db_ok() if database.is_configured() else False,
         "kb_source": kb_source,
         "intent_model_loaded": intents.is_loaded(),
-        "llm_configured": bool(config.GEMINI_API_KEY),
+        "llm_providers": engine.llm_status(),
+        "llm_configured": bool(engine.llm_status()),
     })
 
 
