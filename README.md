@@ -225,3 +225,27 @@ WHERE to_tsvector('english', pf.description) @@ plainto_tsquery('english', 'atte
 
 *Engineered as an advanced Database Management Systems (DBMS) project.*
 *MIST AI © 2026*
+
+
+## Understanding messy questions (`backend/understand.py`)
+Students do not type textbook sentences, so every message goes through a local understanding step before routing:
+- **Slang / SMS / Hinglish** is normalised ("wat is d fee", "hostal fees kitna hai" -> "hostel fees how much").
+- **Spelling** is repaired against the SRM vocabulary built from the knowledge base ("libary timmings" -> "library timings").
+- **Follow-ups** are rewritten into standalone questions using the conversation ("and how many girls can it hold" after a
+  hostel question). The language model is used only for this when the message looks like a follow-up; otherwise it falls
+  back to merging with the previous question.
+- Department names are matched with typo tolerance too ("hod of ctec" -> Computing Technologies).
+
+## Knowledge base
+About 140 entries, each with a source URL on srmist.edu.in: admissions and SRMJEEE, scholarships and refunds, academic
+calendar, exam rules, library, transport, clubs, sports, hostel rules, anti-ragging, how to reach the campus, programme
+fees, and verified HOD / contact details for 9 departments (`backend/data/*.json`). Add more rows with
+`backend/data/*.json` and run `python ingest_kb.py`.
+
+## Safety nets
+- **Numeric guard:** if the language model writes a number (percentage, amount, date) that is not in the retrieved
+  context, the answer is replaced by the retrieved text.
+- **Circuit breakers:** a model or the embedding API that returns quota or overload errors is skipped for a while, so
+  answers stay fast and fall back to the local TF-IDF retriever (no API needed).
+- `python evaluate.py` reports intent accuracy, retrieval hit@1/hit@3 and off-topic leakage; run it with
+  `GEMINI_API_KEY=` empty to measure the fully offline mode. `python test_faculty.py` guards the HOD/faculty skill.

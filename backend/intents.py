@@ -265,3 +265,35 @@ TRAIN["offtopic"] += [
     "who is the richest person", "who is the president of france", "who is taylor swift", "who is messi",
     "who invented the telephone", "who wrote hamlet", "who is the owner of tesla", "who is albert einstein",
 ]
+
+
+# ---- academics / exam rules / facilities / safety ------------------------------------------------
+TRAIN.update({
+    "academics": [
+        "academic calendar 2026-27", "when do classes start", "when are the cycle tests", "when do semester exams begin",
+        "what is the attendance requirement", "minimum attendance for exams", "what happens if I am detained",
+        "how to apply for revaluation", "revaluation last date", "is there a model exam", "when is the model exam",
+        "what is the exam policy", "what are the exam rules", "when does the even semester start",
+        "what are the working days", "what is a day order", "malpractice in exams punishment", "makeup exam rules",
+        "internal assessment dates", "when is the last working day", "how are internals calculated"],
+    "facilities": [
+        "library timings", "what time does the library close", "how many books can i borrow", "library fine for late return",
+        "can i borrow a laptop from the library", "bus facility", "how to book college bus", "bus timings from chennai",
+        "bus fee", "how to get bus pass", "transport office contact", "anti ragging helpline number",
+        "ragging complaint", "how to report ragging", "is the central library open on sunday", "library membership",
+        "lost library book what to do", "duplicate bus pass cost", "campus safety contact", "student helpline"],
+})
+KEYWORDS.update({
+    "academics": ["academic calendar", "cycle test", "model exam", "attendance", "detained", "revaluation", "semester dates", "day order", "exam rules"],
+    "facilities": ["library timings", "library fine", "borrow books", "bus", "bus pass", "transport", "anti ragging", "helpline"],
+})
+TEST.extend([
+    ("when is the next semester exam", "academics"), ("what is the minimum attendance percentage", "academics"),
+    ("can i apply for revaluation after results", "academics"), ("when is internal assessment 2", "academics"),
+    ("how late is the central library open", "facilities"), ("how much is the fine for a late book", "facilities"),
+    ("what are the bus timings", "facilities"), ("who do i call for ragging", "facilities"),
+])
+TOPICS.update({
+    "academics": {"Academics", "Exams"}, "facilities": {"Library", "Transport", "Safety", "Student life"},
+})
+LABELS.update({"academics": "Academics & exams", "facilities": "Library, transport & safety"})

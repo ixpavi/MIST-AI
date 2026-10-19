@@ -56,14 +56,29 @@ def departments():
 
 
 def _match_department(text):
-    """Best department whose alias appears as whole words in the text (longest alias wins)."""
+    """Best department whose alias appears in the text. Exact whole-word match first (longest alias wins),
+    then a typo-tolerant match on single words ('ctec' -> CTECH, 'mechanicl' -> mechanical)."""
+    import difflib
     t = " " + re.sub(r"[^a-z0-9 ]+", " ", text.lower()) + " "
     best, best_len = None, 0
     for d in departments():
         for alias in d["aliases"]:
             if f" {alias} " in t and len(alias) > best_len:
                 best, best_len = d, len(alias)
-    return best
+    if best:
+        return best
+    singles = {}
+    for d in departments():
+        for alias in d["aliases"]:
+            if " " not in alias and len(alias) >= 4:
+                singles[alias] = d
+    for tok in t.split():
+        if len(tok) < 4 or tok in _NOT_NAME:
+            continue
+        m = difflib.get_close_matches(tok, list(singles), n=1, cutoff=0.8)
+        if m and m[0][0] == tok[0]:
+            return singles[m[0]]
+    return None
 
 
 def department_chunks():
