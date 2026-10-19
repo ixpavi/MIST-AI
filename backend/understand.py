@@ -74,7 +74,9 @@ def spell_fix(text, vocab):
     return " ".join(fixed)
 
 
-def looks_like_followup(text, has_history):
+def looks_like_followup(text, has_history, names_own_subject=None):
+    """True when the message only makes sense with the previous turn. A short message that names its own subject
+    (for example 'dsbs hod') is standalone: merging it with the previous question used to answer the OLD subject."""
     if not has_history:
         return False
     t = " " + text.lower().strip() + " "
@@ -83,6 +85,8 @@ def looks_like_followup(text, has_history):
         return True
     if text.lower().strip().startswith(CONNECTORS):
         return True
+    if names_own_subject and names_own_subject(text):
+        return False
     return len(toks) <= 3
 
 
@@ -104,7 +108,7 @@ def rewrite_followup(text, history, llm_fn):
     return text, "none"
 
 
-def prepare(text, history, vocab, llm_fn=None):
+def prepare(text, history, vocab, llm_fn=None, names_own_subject=None):
     """Returns (standalone_query, notes) where notes lists what was changed (for logging/explainability)."""
     notes = []
     norm = normalise(text)
@@ -116,7 +120,7 @@ def prepare(text, history, vocab, llm_fn=None):
     if norm != re.sub(r"\s+", " ", text.lower().strip()):
         notes.append("slang")
     q = fixed
-    if looks_like_followup(text, bool(history)):
+    if looks_like_followup(text, bool(history), names_own_subject):
         q2, how = rewrite_followup(q, history, llm_fn)
         if how != "none":
             q = q2

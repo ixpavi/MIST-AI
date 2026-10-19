@@ -455,7 +455,8 @@ def answer(query, history=None, name="", today=None, action=None):
         chunks_for_vocab,
         [d["name"] + " " + " ".join(d["aliases"]) for d in skills.departments()]
         + [q for qs in intents.TRAIN.values() for q in qs])
-    query, notes = understand.prepare(raw_query, history, vocab, _rewrite_llm)
+    query, notes = understand.prepare(raw_query, history, vocab, _rewrite_llm,
+                                    names_own_subject=lambda t: bool(skills._match_department(t)))
     qv_plain = qv_query = None
     if semantic.ready():
         qv_plain = semantic.encode_plain([query])[0]
@@ -477,6 +478,13 @@ def answer(query, history=None, name="", today=None, action=None):
         return _result("You're welcome! Ask me anything else about SRM.", "rule", intent, conf)
     if intent == "about_bot" and conf >= 0.5:
         return _result(IDENTITY, "rule", intent, conf)
+
+    # a bare department name ("dsbs", "mech", "civil") means: tell me about that department
+    if len(query.split()) <= 2:
+        dept = skills._match_department(query)
+        asks_money = any(w in query.lower().split() for w in ("fee", "fees", "seat", "seats", "intake", "cost"))
+        if dept and not asks_money:
+            return _result(skills._department_answer(dept), "skill", "faculty", 1.0, skill="department")
 
     # 2) database skills (faculty finder, PYQs, portals, locations)
     if intent in intents.SKILL_INTENTS and conf >= 0.45:

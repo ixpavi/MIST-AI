@@ -56,15 +56,17 @@ def departments():
 
 
 def _match_department(text):
-    """Best department whose alias appears in the text. Exact whole-word match first (longest alias wins),
-    then a typo-tolerant match on single words ('ctec' -> CTECH, 'mechanicl' -> mechanical)."""
+    """Department named in the text. Exact whole-word alias match first; if several departments are mentioned the
+    one mentioned LAST wins (so 'hod of ctech ... what about mechanical' means mechanical), longest alias on ties.
+    Then a typo-tolerant match on single words ('ctec' -> CTECH, 'mechanicl' -> mechanical)."""
     import difflib
     t = " " + re.sub(r"[^a-z0-9 ]+", " ", text.lower()) + " "
-    best, best_len = None, 0
+    best, best_key = None, (-1, -1)
     for d in departments():
         for alias in d["aliases"]:
-            if f" {alias} " in t and len(alias) > best_len:
-                best, best_len = d, len(alias)
+            pos = t.rfind(f" {alias} ")
+            if pos >= 0 and (pos, len(alias)) > best_key:
+                best, best_key = d, (pos, len(alias))
     if best:
         return best
     singles = {}
