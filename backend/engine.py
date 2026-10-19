@@ -108,8 +108,26 @@ def ensure_embeddings(chunks):
 
 
 # ---------------------------------------------------------------- retrieval
+SYNONYMS = {"stay": "hostel", "room": "hostel", "mess": "hostel", "helpline": "contact", "phone": "contact",
+            "number": "contact", "email": "contact", "marks": "eligibility", "percentage": "eligibility",
+            "book": "apply", "booking": "apply", "register": "apply", "allotment": "apply"}
+
+
+def _stem(w):
+    for suf in ("ing", "es", "s", "ed"):
+        if len(w) > len(suf) + 3 and w.endswith(suf):
+            return w[:-len(suf)]
+    return w
+
+
 def _tokens(text):
-    return [w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in STOP and len(w) > 1]
+    out = []
+    for w in re.findall(r"[a-z0-9]+", text.lower()):
+        if w not in STOP and len(w) > 1:
+            out.append(_stem(w))
+            if w in SYNONYMS:
+                out.append(SYNONYMS[w])
+    return out
 
 
 def _keyword_scores(query, chunks):
@@ -196,12 +214,18 @@ def _llm(prompt):
     return None, None
 
 
-def answer(query, history=None, name="", today=None):
+def answer(query, history=None, name="", today=None, action=None):
     """Full MIST AI pipeline. Returns dict(reply, route, intent, intent_conf, sources, grounded, ...)."""
     history = history or []
     query = query.strip()[:config.MAX_MESSAGE_CHARS]
     intent, conf = intents.predict(query)
     ql = query.lower()
+
+    # 0) explicit UI action (two-step faculty flow): no intent guessing needed
+    if action == "faculty":
+        text, skill = skills.run("faculty", query)
+        if text:
+            return _result(text, "skill", "faculty", 1.0, skill=skill)
 
     # 1) rules
     if intent == "greeting" and conf >= 0.5:

@@ -1,126 +1,113 @@
-"""
-app.py - Flask backend for MIST AI chatbot
-"""
-
+"""Flask API for MIST AI.  POST /chat, POST /feedback, GET /health, GET /stats."""
+import logging
 import os
 import sys
-import traceback
 
-LOCAL_DEPS = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".deps")
-if os.path.isdir(LOCAL_DEPS) and LOCAL_DEPS not in sys.path:
-    sys.path.insert(0, LOCAL_DEPS)
-
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-
-# Add backend directory to path so imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from search import DEFAULT_REPLY, search
-from llm import ask_llm
-from database import execute_query, execute_fetch, init_db
+from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
 
+import config
+import database
+import engine
+import intents
 
-# ---------------------------------------------------------------------------
-# Flask app setup
-# ---------------------------------------------------------------------------
-FRONTEND_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+log = logging.getLogger("mist.app")
+
+FRONTEND_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend"))
+MAX_HISTORY = 10
+ACTIONS = {"faculty"}
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 CORS(app)
 
-# Initialize database schema on import (needed for gunicorn workers in production)
-print("[*] Initializing database...")
-init_db()
+# Non-fatal: without a database the app still answers from the bundled knowledge base.
+try:
+    database.init_db()
+except Exception as e:
+    log.warning("init_db skipped: %s", str(e)[:120])
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+def clean_history(raw):
+    """Keep only well-formed user/model turns from the client, trimmed to a sane size."""
+    out = []
+    if not isinstance(raw, list):
+        return out
+    for m in raw[-2 * MAX_HISTORY:]:
+        if not isinstance(m, dict):
+            continue
+        role = m.get("role")
+        text = m.get("text")
+        if text is None and isinstance(m.get("parts"), list) and m["parts"] and isinstance(m["parts"][0], dict):
+            text = m["parts"][0].get("text")
+        if role not in ("user", "model") or not isinstance(text, str) or not text.strip():
+            continue
+        out.append({"role": role, "text": text.strip()[:config.MAX_MESSAGE_CHARS]})
+    return out
+
 
 @app.route("/")
 def index():
-    """Serve the chat frontend."""
-    try:
-        return send_from_directory(app.static_folder, "index.html")
-    except Exception as e:
-        print(f"[ERROR] Failed to serve index.html: {e}")
-        return jsonify({"error": "Frontend not found"}), 500
+    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    """
-    POST /chat
-    Body: { "message": "user question" }
-    Returns: { "reply": "chatbot answer" }
-    """
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get("message"), str):
+        return jsonify({"reply": "Please send a message."}), 400
+    message = data["message"].strip()
+    if not message:
+        return jsonify({"reply": "Please type a question so I can help you!"}), 400
+    if len(message) > config.MAX_MESSAGE_CHARS:
+        return jsonify({"reply": f"Please keep your question under {config.MAX_MESSAGE_CHARS} characters."}), 400
+    action = data.get("action") if data.get("action") in ACTIONS else None
+    session_id = str(data.get("session_id") or "")[:64] or None
+
     try:
-        data = request.get_json(silent=True)
-        if not data or "message" not in data:
-            return jsonify({"reply": "Please send a message."}), 400
+        res = engine.answer(message, clean_history(data.get("history")), action=action)
+    except Exception:
+        log.exception("engine failed")
+        return jsonify({"reply": "Sorry, something went wrong on my side. Please try again."}), 500
 
-        user_message = str(data["message"]).strip()
-        history = data.get("history", [])
-        if not user_message:
-            return jsonify({"reply": "Please type a question so I can help you!"}), 400
-
-        # Search the database first; Gemini is only a fallback for no-match cases.
-        reply = search(user_message)
-        if not reply or reply.strip() == DEFAULT_REPLY:
-            reply = ask_llm(user_message, history)
-
-        # Log the conversation (non-blocking - errors here should not break the response)
-        try:
-            execute_query(
-                "INSERT INTO chat_logs (question, response) VALUES (%s, %s)",
-                (user_message, reply)
-            )
-        except Exception as log_err:
-            print(f"[WARNING] Failed to log chat: {log_err}")
-
-        return jsonify({"reply": reply})
-
-    except Exception as e:
-        print(f"[ERROR] /chat route failed: {e}")
-        traceback.print_exc()
-        return jsonify({"reply": "Sorry, something went wrong on the server. Please try again."}), 500
+    chat_id = database.log_chat(session_id, message, res["reply"], res) if database.is_configured() else None
+    return jsonify({
+        "reply": res["reply"], "route": res["route"], "intent": res["intent"],
+        "intent_conf": res["intent_conf"], "sources": res.get("sources", []), "chat_id": chat_id,
+    })
 
 
-@app.route("/history", methods=["GET"])
-def history():
-    """Return the last 50 chat log entries."""
-    try:
-        rows = execute_fetch(
-            """
-            SELECT chat_id, question, response, timestamp
-            FROM chat_logs
-            ORDER BY timestamp DESC
-            LIMIT 50
-            """
-        )
-        logs = []
-        for r in rows:
-            logs.append({
-                "id": r[0],
-                "question": r[1],
-                "response": r[2],
-                "timestamp": r[3].isoformat() if r[3] else None
-            })
-        return jsonify(logs)
-    except Exception as e:
-        print(f"[ERROR] /history route failed: {e}")
-        return jsonify([]), 500
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    data = request.get_json(silent=True) or {}
+    chat_id, rating = data.get("chat_id"), data.get("rating")
+    if not isinstance(chat_id, int) or isinstance(chat_id, bool) or rating not in (1, -1):
+        return jsonify({"ok": False, "error": "chat_id (int) and rating (1 or -1) are required"}), 400
+    return jsonify({"ok": bool(database.save_feedback(chat_id, rating))})
 
 
-# ---------------------------------------------------------------------------
-# Entry point (local development only - production uses gunicorn)
-# ---------------------------------------------------------------------------
+@app.route("/health")
+def health():
+    _, kb_source = engine.get_kb()
+    return jsonify({
+        "status": "ok",
+        "db_configured": database.is_configured(),
+        "db_ok": database.db_ok() if database.is_configured() else False,
+        "kb_source": kb_source,
+        "intent_model_loaded": intents.is_loaded(),
+        "llm_configured": bool(config.GEMINI_API_KEY),
+    })
+
+
+@app.route("/stats")
+def stats():
+    if not database.is_configured():
+        return jsonify({"total": 0, "grounded": 0, "up": 0, "down": 0, "db": False})
+    return jsonify({**database.get_stats(), "db": True})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"[*] Starting MIST AI server on http://localhost:{port}")
-    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
-
-
+    app.run(host="0.0.0.0", port=port, debug=False)

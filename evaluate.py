@@ -2,9 +2,14 @@
  - intent accuracy on the held-out question set
  - retrieval hit@1 / hit@3 on questions whose answer chunk is known
  - routing checks (deadline / fee questions must use exact tools, off-topic must be declined)."""
-import intents
-import rag
-import tools
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
+
+import engine  # noqa: E402
+import intents  # noqa: E402
+import tools  # noqa: E402
 
 # question -> id (or id prefix) of the knowledge-base entry that should be retrieved
 RETRIEVAL = [
@@ -48,14 +53,14 @@ def main():
     ok = sum(p == t for p, t in zip(pipe.predict(list(tx)), ty))
     print(f"Intent model (held-out, unseen questions): {ok}/{len(tx)} = {ok / len(tx):.1%}")
 
-    chunks = rag.load_local_kb()
-    rag.ensure_embeddings(chunks)
+    chunks = engine.load_local_kb()
+    engine.ensure_embeddings(chunks)
     mode = "hybrid (embeddings + keywords)" if any(c.get("embedding") for c in chunks) else "keyword only"
     h1 = h3 = 0
     misses = []
     for q, want in RETRIEVAL:
         intent, _ = intents.predict(q)
-        top, _, _ = rag.retrieve(q, chunks, intent=intent, k=3)
+        top, _, _ = engine.retrieve(q, chunks, intent=intent, k=3)
         ids = [c["id"] for c in top]
         h1 += bool(ids) and ids[0].startswith(want)
         hit = any(i.startswith(want) for i in ids)
@@ -69,7 +74,7 @@ def main():
 
     r_ok = 0
     for q, route in ROUTING:
-        got = rag.answer(q, [], chunks)["route"] if route != "kb" else None
+        got = engine.answer(q)["route"]
         r_ok += got == route
         if got != route:
             print(f"  routing miss: {q!r} wanted {route}, got {got}")

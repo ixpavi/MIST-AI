@@ -18,11 +18,42 @@
     var scrollFrame = null;
     var heroHidden = false;
     var chatHistory = [];
+    var sessionId = makeSessionId();
 
     // ---- Two-step flow state ----
     // When a chip requires follow-up input (e.g. faculty name),
     // we store the pending action here.
     var pendingAction = null;  // e.g. { type: "faculty" }
+
+    function makeSessionId() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    }
+
+    var ROUTE_LABELS = {
+        rule: "Quick reply", skill: "SRM database", tool: "Exact tool", "kb+llm": "SRM knowledge",
+        kb: "SRM knowledge", decline: "Out of scope"
+    };
+
+    async function checkHealth() {
+        var dot = document.getElementById("dbDot");
+        var readout = document.getElementById("dbReadout");
+        var pill = document.getElementById("liveText");
+        try {
+            var res = await fetch("/health");
+            var h = await res.json();
+            var label = h.db_ok ? "DB LIVE" : "KB MODE";
+            readout.textContent = label;
+            pill.textContent = "Online";
+            if (dot) dot.style.opacity = h.db_ok ? "1" : "0.45";
+            setStatus(h.db_ok ? "Connected" : "Running on the built-in SRM knowledge base", "ready");
+        } catch (e) {
+            readout.textContent = "OFFLINE";
+            pill.textContent = "Offline";
+            if (dot) dot.style.opacity = "0.2";
+            setStatus("Waking up the server...", "offline");
+        }
+    }
 
     document.addEventListener("DOMContentLoaded", init, { once: true });
 
@@ -46,6 +77,7 @@
             });
         });
 
+        checkHealth();
         messageInput.focus();
         scrollToBottom(false);
     }
@@ -84,13 +116,10 @@
         var text = (forcedText || messageInput.value).trim();
         if (!text) return;
 
-        // Check if we have a pending action (two-step flow)
+        // Pending two-step action: send it as an explicit action field
+        var action = null;
         if (!forcedText && pendingAction) {
-            if (pendingAction.type === "faculty") {
-                // Prefix with "faculty" so the backend detects the intent
-                text = "faculty " + text;
-            }
-            // Clear pending state
+            action = pendingAction.type;
             pendingAction = null;
             messageInput.placeholder = "Ask about faculty, fees, PYQs, hostels, portals, placements...";
             messageInput.classList.remove("awaiting-input");
@@ -107,7 +136,7 @@
             var response = await fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text, history: chatHistory })
+                body: JSON.stringify({ message: text, history: chatHistory, session_id: sessionId, action: action })
             });
 
             if (!response.ok) {
@@ -117,11 +146,11 @@
             var data = await response.json();
             hideTyping();
             var reply = data && data.reply ? data.reply : "I could not find an answer.";
-            appendMessage("bot", reply);
-            
+            appendMessage("bot", reply, data);
+
             // Push to chat history
-            chatHistory.push({ role: "user", parts: [{ text: text }] });
-            chatHistory.push({ role: "model", parts: [{ text: reply }] });
+            chatHistory.push({ role: "user", text: text });
+            chatHistory.push({ role: "model", text: reply });
             
             // Keep only the last 10 turns (20 messages) to prevent huge payloads
             if (chatHistory.length > 20) {
@@ -132,9 +161,10 @@
         } catch (error) {
             console.error("Chat request failed:", error);
             hideTyping();
-            appendMessage("bot", "I could not reach the server. Please make sure Flask is running at http://localhost:5000.");
-            setStatus("Backend connection failed", "offline");
-            showToast("Unable to send message. Check the backend server.");
+            appendMessage("bot", "I could not reach the server right now. It may be waking up - please wait a few seconds and try again.");
+            setStatus("Server unreachable", "offline");
+            showToast("Could not reach MIST AI. Try again in a moment.");
+            checkHealth();
         } finally {
             setSending(false);
             messageInput.focus();
@@ -142,7 +172,7 @@
         }
     }
 
-    function appendMessage(role, text) {
+    function appendMessage(role, text, meta) {
         var row = document.createElement("div");
         row.className = "message-row " + role;
 
@@ -162,11 +192,56 @@
         time.textContent = getTime();
 
         wrap.appendChild(bubble);
+        if (role === "bot" && meta && meta.route) {
+            wrap.appendChild(buildMeta(meta));
+        }
         wrap.appendChild(time);
         row.appendChild(avatar);
         row.appendChild(wrap);
         chatMessages.appendChild(row);
         scrollToBottom(true);
+    }
+
+    function buildMeta(meta) {
+        var bar = document.createElement("div");
+        bar.className = "message-meta";
+
+        var badge = document.createElement("span");
+        badge.className = "route-badge route-" + String(meta.route).replace("+", "-");
+        var label = ROUTE_LABELS[meta.route] || meta.route;
+        badge.textContent = label;
+        badge.title = "Topic: " + (meta.intent || "n/a");
+        bar.appendChild(badge);
+
+        if (meta.chat_id) {
+            [["up", "\uD83D\uDC4D", 1, "Helpful"], ["down", "\uD83D\uDC4E", -1, "Not helpful"]].forEach(function (def) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "fb-btn";
+                btn.textContent = def[1];
+                btn.title = def[3];
+                btn.setAttribute("aria-label", def[3]);
+                btn.addEventListener("click", function () { sendFeedback(meta.chat_id, def[2], bar, btn); });
+                bar.appendChild(btn);
+            });
+        }
+        return bar;
+    }
+
+    async function sendFeedback(chatId, rating, bar, btn) {
+        try {
+            var res = await fetch("/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: chatId, rating: rating })
+            });
+            if (!res.ok) throw new Error("feedback failed");
+            bar.querySelectorAll(".fb-btn").forEach(function (b) { b.classList.remove("chosen"); });
+            btn.classList.add("chosen");
+            showToast("Thanks for the feedback!");
+        } catch (e) {
+            showToast("Could not save feedback.");
+        }
     }
 
     function showTyping() {
@@ -231,6 +306,7 @@
         messageInput.classList.remove("awaiting-input");
 
         chatHistory = []; // Reset context
+        sessionId = makeSessionId();
         messageInput.value = "";
         setStatus("Chat surface cleared", "ready");
         messageInput.focus();
@@ -255,7 +331,7 @@
         sendBtn.disabled = value;
         messageInput.disabled = value;
         sendBtn.textContent = value ? "Sending" : "Send";
-        setStatus(value ? "Querying PostgreSQL search layer..." : "Connected to the Flask relay", value ? "searching" : "ready");
+        setStatus(value ? "Thinking..." : "Ready", value ? "searching" : "ready");
     }
 
     function setStatus(text, state) {

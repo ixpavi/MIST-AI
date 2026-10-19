@@ -105,6 +105,10 @@ LABELS = {"admissions": "Admissions", "exam": "SRMJEEE exam", "scholarship": "Sc
 _model = None
 
 
+def is_loaded():
+    return _model is not None
+
+
 def build_pipeline():
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
@@ -196,7 +200,7 @@ TEST = [
     ("what grade did naac give", "rankings"), ("where does srm stand in nirf", "rankings"), ("is srm recognised by ugc", "rankings"),
     ("how many campuses are there", "campuses"), ("how big is the kattankulathur campus", "campuses"), ("is there a campus in haryana", "campuses"),
     ("how do i reach the college from chennai", "campuses"),
-    ("what is the number of the admissions office", "contact"), ("give me the official email for queries", "contact"), ("where can i find the student portal", "contact"),
+    ("what is the number of the admissions office", "contact"), ("give me the official email for queries", "contact"), ("where can i find the student portal", "portal"),
     ("which student clubs can i join", "student_life"), ("are there sports grounds", "student_life"), ("what cultural events happen", "student_life"),
     ("is ragging allowed", "student_life"),
     ("hello there", "greeting"), ("good evening mist", "greeting"), ("heyy", "greeting"),

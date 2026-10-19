@@ -1,9 +1,9 @@
 flask
 flask-cors
 psycopg2-binary
-requests
-beautifulsoup4
-google-generativeai
 python-dotenv
-PyPDF2
 gunicorn
+google-genai
+scikit-learn
+joblib
+numpy

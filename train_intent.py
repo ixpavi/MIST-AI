@@ -1,9 +1,14 @@
 """Train the SRM intent classifier and report accuracy on held-out questions.   python train_intent.py"""
+import os
+import sys
+
 import joblib
 import numpy as np
 from sklearn.metrics import classification_report
 
-import intents
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
+
+import intents  # noqa: E402
 
 
 def main():

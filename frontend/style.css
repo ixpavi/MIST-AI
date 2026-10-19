@@ -908,3 +908,39 @@ button {
         max-width: 86%;
     }
 }
+
+/* ---- answer meta: route badge + feedback ---- */
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.route-badge {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--acid);
+    border: 1px solid rgba(183, 249, 74, 0.35);
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.route-badge.route-decline { color: var(--muted); border-color: var(--line-strong); }
+.route-badge.route-tool { color: var(--solar); border-color: rgba(246, 200, 79, 0.4); }
+
+.fb-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1px 7px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, border-color 0.15s;
+}
+
+.fb-btn:hover { opacity: 1; border-color: var(--line-strong); }
+.fb-btn.chosen { opacity: 1; border-color: var(--acid); background: rgba(183, 249, 74, 0.12); }

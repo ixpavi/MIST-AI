@@ -28,8 +28,8 @@
             </button>
 
             <div class="rail-readout">
-                <span class="readout-dot"></span>
-                DB LIVE
+                <span class="readout-dot" id="dbDot"></span>
+                <span id="dbReadout">CHECKING</span>
             </div>
         </aside>
 
@@ -109,11 +109,11 @@
                     <div class="chat-topbar">
                         <div>
                             <p>Conversation</p>
-                            <span id="statusText">Connected to the Flask relay</span>
+                            <span id="statusText">Connecting...</span>
                         </div>
-                        <div class="live-pill">
+                        <div class="live-pill" id="livePill">
                             <span></span>
-                            Online
+                            <b id="liveText">Checking</b>
                         </div>
                     </div>
 
