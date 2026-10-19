@@ -1,95 +1,187 @@
-"""
-database.py - PostgreSQL connection helper for MIST AI
-"""
+"""PostgreSQL (Supabase) access for MIST AI: pooled connections, no hard-coded credentials."""
+import logging
+import os
+import threading
+from contextlib import contextmanager
 
 import psycopg2
-import os
-import traceback
+from psycopg2 import pool
+
+import config
+
+log = logging.getLogger("mist.db")
+SCHEMA_PATH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "database", "schema.sql"))
+
+_pool = None
+_lock = threading.Lock()
 
 
-DB_CONFIG = {
-    "host":     os.getenv("DB_HOST", "localhost"),
-    "port":     os.getenv("DB_PORT", "5432"),
-    "dbname":   os.getenv("DB_NAME", "mist_ai"),
-    "user":     os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASS", "1234"),
-}
+def is_configured():
+    return bool(config.get("DATABASE_URL") or (config.get("DB_HOST") and config.get("DB_USER") and config.get("DB_PASS")))
 
 
-def get_connection():
-    """Return a new psycopg2 connection."""
+def _connect_args():
+    url = config.get("DATABASE_URL")
+    if url:
+        return {"dsn": url, "connect_timeout": 8}
+    host = config.get("DB_HOST", "localhost")
+    local = host in ("localhost", "127.0.0.1")
+    return {
+        "host": host, "port": config.get("DB_PORT", "5432"), "dbname": config.get("DB_NAME", "postgres"),
+        "user": config.get("DB_USER"), "password": config.get("DB_PASS"),
+        "sslmode": config.get("DB_SSLMODE", "prefer" if local else "require"), "connect_timeout": 8,
+    }
+
+
+def _get_pool():
+    global _pool
+    if _pool is None:
+        with _lock:
+            if _pool is None:
+                if not is_configured():
+                    raise RuntimeError("Database is not configured (set DATABASE_URL or DB_HOST/DB_USER/DB_PASS)")
+                _pool = pool.ThreadedConnectionPool(1, 6, **_connect_args())
+    return _pool
+
+
+@contextmanager
+def connection():
+    p = _get_pool()
+    conn = p.getconn()
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        return conn
-    except psycopg2.OperationalError as e:
-        print(f"[DB ERROR] Cannot connect to database: {e}")
-        raise
-
-
-def execute_query(sql, params=None):
-    """Execute a write query (INSERT/UPDATE/DELETE) and commit."""
-    conn = None
-    try:
-        conn = get_connection()
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
+        yield conn
         conn.commit()
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"[DB ERROR] execute_query failed: {e}")
+    except Exception:
+        conn.rollback()
         raise
     finally:
-        if conn:
-            conn.close()
+        try:
+            p.putconn(conn, close=bool(conn.closed))
+        except Exception:
+            pass
+
+
+def reset_pool():
+    global _pool
+    with _lock:
+        if _pool is not None:
+            try:
+                _pool.closeall()
+            except Exception:
+                pass
+        _pool = None
+
+
+def execute_query(sql, params=None, returning=False):
+    """Write query. With returning=True the first row is returned."""
+    try:
+        with connection() as conn, conn.cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchone() if returning else None
+    except psycopg2.OperationalError:
+        reset_pool()   # stale pooled connection after a DB restart/pause
+        raise
 
 
 def execute_fetch(sql, params=None, fetch_one=False):
-    """Execute a SELECT query and return results."""
-    conn = None
+    """SELECT helper. Returns [] / None on failure so one bad query never breaks a chat turn."""
     try:
-        conn = get_connection()
-        with conn.cursor() as cur:
+        with connection() as conn, conn.cursor() as cur:
             cur.execute(sql, params)
             return cur.fetchone() if fetch_one else cur.fetchall()
+    except psycopg2.OperationalError as e:
+        log.warning("DB unreachable: %s", str(e)[:120])
+        reset_pool()
     except Exception as e:
-        print(f"[DB ERROR] execute_fetch failed: {e}")
-        return None if fetch_one else []
-    finally:
-        if conn:
-            conn.close()
+        log.warning("query failed: %s", str(e)[:160])
+    return None if fetch_one else []
+
+
+def db_ok():
+    try:
+        with connection() as conn, conn.cursor() as cur:
+            cur.execute("select 1")
+            return True
+    except Exception:
+        reset_pool()
+        return False
 
 
 def init_db():
-    """Run schema.sql to create tables and seed data."""
-    schema_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "database", "schema.sql")
-    schema_path = os.path.normpath(schema_path)
-
-    if not os.path.exists(schema_path):
-        print(f"[WARNING] schema.sql not found at {schema_path}")
+    """Create tables / seed data. The schema is idempotent (IF NOT EXISTS / ON CONFLICT DO NOTHING)."""
+    if not is_configured():
+        log.warning("init_db skipped: database not configured")
         return False
-
-    with open(schema_path, "r", encoding="utf-8") as f:
-        sql = f.read()
-
-    conn = None
     try:
-        conn = get_connection()
-        with conn.cursor() as cur:
+        with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+            sql = f.read()
+        with connection() as conn, conn.cursor() as cur:
             cur.execute(sql)
-        conn.commit()
-        print("[OK] Database schema initialized successfully.")
+        log.info("schema ready")
         return True
     except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"[ERROR] Failed to initialize database: {e}")
-        traceback.print_exc()
+        log.error("init_db failed: %s", str(e)[:200])
         return False
-    finally:
-        if conn:
-            conn.close()
 
 
 if __name__ == "__main__":
-    init_db()
+    logging.basicConfig(level=logging.INFO)
+    print("OK" if init_db() else "FAILED")
+
+
+# ---------------------------------------------------------------- knowledge base / logging helpers
+def upsert_chunks(chunks):
+    import json
+    with connection() as conn, conn.cursor() as cur:
+        for c in chunks:
+            cur.execute(
+                """INSERT INTO kb_chunks (id, topic, campus, text, source, embedding, updated_at)
+                   VALUES (%s,%s,%s,%s,%s,%s, now())
+                   ON CONFLICT (id) DO UPDATE SET topic=EXCLUDED.topic, campus=EXCLUDED.campus,
+                     text=EXCLUDED.text, source=EXCLUDED.source, embedding=EXCLUDED.embedding, updated_at=now()""",
+                (c["id"], c.get("topic", "General"), c.get("campus", "All"), c["text"], c.get("source"),
+                 json.dumps(c["embedding"]) if c.get("embedding") else None))
+
+
+def load_chunks():
+    import json
+    rows = execute_fetch("SELECT id, topic, campus, text, source, embedding FROM kb_chunks ORDER BY id")
+    out = []
+    for id_, topic, campus, text, source, emb in rows:
+        if isinstance(emb, str):
+            emb = json.loads(emb)
+        out.append({"id": id_, "topic": topic, "campus": campus, "text": text, "source": source, "embedding": emb})
+    return out
+
+
+def log_chat(session_id, question, answer, res):
+    """Returns the new chat_id or None. Never raises."""
+    try:
+        row = execute_query(
+            """INSERT INTO chat_logs (session_id, question, response, route, intent, intent_conf, grounded)
+               VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING chat_id""",
+            (session_id, question, answer, res.get("route"), res.get("intent"),
+             res.get("intent_conf"), bool(res.get("grounded"))), returning=True)
+        return row[0] if row else None
+    except Exception as e:
+        log.warning("log_chat failed: %s", str(e)[:120])
+        return None
+
+
+def save_feedback(chat_id, rating):
+    try:
+        execute_query("UPDATE chat_logs SET rating=%s WHERE chat_id=%s", (rating, chat_id))
+        return True
+    except Exception as e:
+        log.warning("save_feedback failed: %s", str(e)[:120])
+        return False
+
+
+def get_stats():
+    rows = execute_fetch(
+        """SELECT count(*), count(*) FILTER (WHERE grounded), count(*) FILTER (WHERE rating = 1),
+                  count(*) FILTER (WHERE rating = -1) FROM chat_logs""")
+    if not rows:
+        return {"total": 0, "grounded": 0, "up": 0, "down": 0}
+    t, g, u, d = rows[0]
+    return {"total": t, "grounded": g, "up": u, "down": d}

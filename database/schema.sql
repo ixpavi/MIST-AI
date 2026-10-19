@@ -306,6 +306,27 @@ INSERT INTO locations (place_name, description) VALUES
     ('Hostel Block',        'Hostel blocks for boys and girls with furnished rooms, mess facilities, Wi-Fi, and security.')
 ON CONFLICT (place_name) DO NOTHING;
 
+
+-- ============================================================
+-- 8. MIST AI ENGINE: knowledge chunks (with embeddings) + richer chat logs
+-- ============================================================
+CREATE TABLE IF NOT EXISTS kb_chunks (
+    id         TEXT PRIMARY KEY,
+    topic      TEXT NOT NULL DEFAULT 'General',
+    campus     TEXT NOT NULL DEFAULT 'All',
+    text       TEXT NOT NULL,
+    source     TEXT,
+    embedding  JSONB,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS session_id  TEXT;
+ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS route       TEXT;
+ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS intent      TEXT;
+ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS intent_conf REAL;
+ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS grounded    BOOLEAN DEFAULT FALSE;
+ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS rating      SMALLINT;   -- 1 helpful, -1 not helpful
+
 -- ============================================================
 -- END OF SCHEMA
 -- ============================================================
