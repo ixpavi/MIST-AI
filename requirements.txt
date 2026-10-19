@@ -7,3 +7,4 @@ google-genai
 scikit-learn
 joblib
 numpy
+better-profanity

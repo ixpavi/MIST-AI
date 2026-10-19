@@ -23,6 +23,7 @@ import database
 import intents
 import skills
 import tools
+import safety
 import understand
 
 log = logging.getLogger("mist.engine")
@@ -304,6 +305,10 @@ def answer(query, history=None, name="", today=None, action=None):
     """Full MIST AI pipeline. Returns dict(reply, route, intent, intent_conf, sources, grounded, ...)."""
     history = history or []
     raw_query = query.strip()[:config.MAX_MESSAGE_CHARS]
+    blocked = safety.check(raw_query)
+    if blocked and action != "faculty":
+        category, reply = blocked
+        return _result(reply, "safety", category, 1.0, grounded=False)
     # understand messy input first: slang/Hinglish, spelling, and follow-ups resolved from the conversation
     chunks_for_vocab, _ = get_kb()
     vocab = understand.build_vocab(

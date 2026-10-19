@@ -30,6 +30,32 @@ except Exception as e:
     log.warning("init_db skipped: %s", str(e)[:120])
 
 
+RATE_LIMIT = 30          # requests
+RATE_WINDOW = 60         # per seconds, per client
+_hits = {}
+
+
+def client_ip():
+    fwd = request.headers.get("X-Forwarded-For", "")
+    return (fwd.split(",")[0].strip() if fwd else request.remote_addr) or "unknown"
+
+
+def rate_limited():
+    """Sliding-window limiter: protects the free-tier model quota from hammering."""
+    import time
+    from collections import deque
+    now = time.time()
+    q = _hits.setdefault(client_ip(), deque())
+    while q and now - q[0] > RATE_WINDOW:
+        q.popleft()
+    if len(q) >= RATE_LIMIT:
+        return True
+    q.append(now)
+    if len(_hits) > 5000:
+        _hits.clear()
+    return False
+
+
 def clean_history(raw):
     """Keep only well-formed user/model turns from the client, trimmed to a sane size."""
     out = []
@@ -55,6 +81,8 @@ def index():
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    if rate_limited():
+        return jsonify({"reply": "You are sending messages very quickly. Please wait a few seconds and try again."}), 429
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or not isinstance(data.get("message"), str):
         return jsonify({"reply": "Please send a message."}), 400

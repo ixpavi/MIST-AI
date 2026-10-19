@@ -32,7 +32,7 @@
 
     var ROUTE_LABELS = {
         rule: "Quick reply", skill: "SRM database", tool: "Exact tool", "kb+llm": "SRM knowledge",
-        kb: "SRM knowledge", decline: "Out of scope"
+        kb: "SRM knowledge", decline: "Out of scope", safety: "Safety check"
     };
 
     async function checkHealth() {
