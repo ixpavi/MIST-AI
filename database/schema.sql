@@ -327,6 +327,22 @@ ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS intent_conf REAL;
 ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS grounded    BOOLEAN DEFAULT FALSE;
 ALTER TABLE chat_logs ADD COLUMN IF NOT EXISTS rating      SMALLINT;   -- 1 helpful, -1 not helpful
 
+
+-- ============================================================
+-- 9. ROW LEVEL SECURITY
+-- The app connects as the postgres role, which bypasses RLS, so this does not affect it.
+-- Enabling RLS with no policies blocks Supabase's public 'anon' / 'authenticated' API roles
+-- from reading or changing these tables through the auto-generated REST API.
+-- ============================================================
+ALTER TABLE IF EXISTS portals          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS portal_features  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS pyq_resources    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS university_info  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS locations        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS website_content  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS chat_logs        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS kb_chunks        ENABLE ROW LEVEL SECURITY;
+
 -- ============================================================
 -- END OF SCHEMA
 -- ============================================================
